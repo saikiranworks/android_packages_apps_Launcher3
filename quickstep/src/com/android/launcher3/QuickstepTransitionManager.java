@@ -243,6 +243,36 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
     private static final float MAX_SCRIM_ALPHA_DARK = 0.8f;
     private static final float MAX_SCRIM_ALPHA_LIGHT = 0.2f;
 
+    /**
+     * Damped-harmonic-oscillator interpolator for a subtle OEM-style spring bounce.
+     */
+    private static final class SpringInterpolator implements Interpolator {
+        private final double mDampingRatio;
+        private final double mNumOfCycles;
+
+        SpringInterpolator(double dampingRatio, double numOfCycles) {
+            mDampingRatio = dampingRatio;
+            mNumOfCycles = numOfCycles;
+        }
+
+        @Override
+        public float getInterpolation(float input) {
+            double wn = mNumOfCycles * 2 * Math.PI;
+            double wd = wn * Math.sqrt(Math.max(1e-6, 1 - mDampingRatio * mDampingRatio));
+            double envelope = Math.exp(-mDampingRatio * wn * input);
+            return (float) (1 - envelope * (Math.cos(wd * input)
+                    + (mDampingRatio * wn / wd) * Math.sin(wd * input)));
+        }
+    }
+
+    /**
+     * Damped-harmonic-oscillator interpolator used to give the app-open/close morph a
+     * "fluid" spring feel (OxygenOS-style) instead of a static Material easing curve.
+     * getInterpolation(0) == 0 and getInterpolation(1) settles to ~1 with a small
+     * decaying overshoot, controlled by dampingRatio (lower = bouncier) and
+     * numOfCycles (higher = faster settling oscillation).
+     */
+
     private final RunnableList mCleanupTask = new RunnableList();
     protected final QuickstepLauncher mLauncher;
     protected final DragLayer mDragLayer;
@@ -966,22 +996,30 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
 
         MultiValueUpdateListener listener = new MultiValueUpdateListener(mOpeningInterpolator) {
             FloatProp mDx = new FloatProp(0, prop.dX, mOpeningXInterpolator);
-            FloatProp mDy = new FloatProp(0, prop.dY);
+            FloatProp mDy = new FloatProp(0, prop.dY, DECELERATE_1_5);
 
+            // Only the icon-grow scale gets the spring bounce -- the fluid morph feel.
             FloatProp mIconScaleToFitScreen = new FloatProp(prop.initialAppIconScale,
                     prop.finalAppIconScale);
             FloatProp mIconAlpha = new FloatProp(prop.iconAlphaStart, 0f,
                     clampToDuration(LINEAR, APP_LAUNCH_ALPHA_START_DELAY, APP_LAUNCH_ALPHA_DURATION,
                             APP_LAUNCH_DURATION));
 
+            // Corner radius, shadow and crop-rect stay flat -- overshoot here wobbles the
+            // window's actual visible content/edges, not just the icon.
             FloatProp mWindowRadius =
-                    new FloatProp(initialWindowRadius, getWindowCornerRadius(mLauncher));
-            FloatProp mShadowRadius = new FloatProp(0, finalShadowRadius);
+                    new FloatProp(initialWindowRadius, getWindowCornerRadius(mLauncher),
+                            DECELERATE_1_5);
+            FloatProp mShadowRadius = new FloatProp(0, finalShadowRadius, DECELERATE_1_5);
 
-            FloatProp mCropRectCenterX = new FloatProp(prop.cropCenterXStart, prop.cropCenterXEnd);
-            FloatProp mCropRectCenterY = new FloatProp(prop.cropCenterYStart, prop.cropCenterYEnd);
-            FloatProp mCropRectWidth = new FloatProp(prop.cropWidthStart, prop.cropWidthEnd);
-            FloatProp mCropRectHeight = new FloatProp(prop.cropHeightStart, prop.cropHeightEnd);
+            FloatProp mCropRectCenterX = new FloatProp(prop.cropCenterXStart, prop.cropCenterXEnd,
+                    DECELERATE_1_5);
+            FloatProp mCropRectCenterY = new FloatProp(prop.cropCenterYStart, prop.cropCenterYEnd,
+                    DECELERATE_1_5);
+            FloatProp mCropRectWidth = new FloatProp(prop.cropWidthStart, prop.cropWidthEnd,
+                    DECELERATE_1_5);
+            FloatProp mCropRectHeight = new FloatProp(prop.cropHeightStart, prop.cropHeightEnd,
+                    DECELERATE_1_5);
 
             FloatProp mNavFadeOut = new FloatProp(1f, 0f, clampToDuration(
                     NAV_FADE_OUT_INTERPOLATOR, 0, ANIMATION_NAV_FADE_OUT_DURATION,
@@ -1010,12 +1048,14 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                             windowTargetBounds, launcherIconBounds, v,
                             dragLayerBounds[0], dragLayerBounds[1], hasSplashScreen,
                             floatingView.isDifferentFromAppIcon());
-                    mCropRectCenterY = new FloatProp(prop.cropCenterYStart, prop.cropCenterYEnd);
-                    mCropRectHeight = new FloatProp(prop.cropHeightStart, prop.cropHeightEnd);
-                    mDy = new FloatProp(0, prop.dY);
+                    mCropRectCenterY = new FloatProp(prop.cropCenterYStart, prop.cropCenterYEnd,
+                            DECELERATE_1_5);
+                    mCropRectHeight = new FloatProp(prop.cropHeightStart, prop.cropHeightEnd,
+                            DECELERATE_1_5);
+                    mDy = new FloatProp(0, prop.dY, DECELERATE_1_5);
                     mIconScaleToFitScreen = new FloatProp(prop.initialAppIconScale,
                             prop.finalAppIconScale);
-                    float interpolatedPercent = getDefaultInterpolator().getInterpolation(percent);
+                    float interpolatedPercent = DECELERATE_1_5.getInterpolation(percent);
                     mCropRectHeight.value = Utilities.mapRange(interpolatedPercent,
                             prop.cropHeightStart, prop.cropHeightEnd);
                     mCropRectCenterY.value = Utilities.mapRange(interpolatedPercent,
