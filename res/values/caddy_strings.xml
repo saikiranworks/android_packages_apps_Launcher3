@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="category_art_and_design">Art &amp; design</string>
+    <string name="category_auto_and_vehicles">Auto &amp; vehicles</string>
+    <string name="category_beauty">Beauty</string>
+    <string name="category_books_and_reference">Books &amp; reference</string>
+    <string name="category_business">Business</string>
+    <string name="category_comics">Comics</string>
+    <string name="category_communication">Communication</string>
+    <string name="category_dating">Dating</string>
+    <string name="category_education">Education</string>
+    <string name="category_entertainment">Entertainment</string>
+    <string name="category_events">Events</string>
+    <string name="category_finance">Finance</string>
+    <string name="category_food_and_drink">Food &amp; drink</string>
+    <string name="category_game">Games</string>
+    <string name="category_health_and_fitness">Health &amp; fitness</string>
+    <string name="category_house_and_home">House &amp; home</string>
+    <string name="category_libraries_and_demo">Libraries &amp; demo</string>
+    <string name="category_lifestyle">Lifestyle</string>
+    <string name="category_maps_and_navigation">Maps &amp; navigation</string>
+    <string name="category_medical">Medical</string>
+    <string name="category_music">Music</string>
+    <string name="category_news">News</string>
+    <string name="category_parenting">Parenting</string>
+    <string name="category_personalization">Personalization</string>
+    <string name="category_photography">Photography</string>
+    <string name="category_productivity">Productivity</string>
+    <string name="category_shopping">Shopping</string>
+    <string name="category_social">Social</string>
+    <string name="category_sports">Sports</string>
+    <string name="category_tools">Tools</string>
+    <string name="category_video">Video</string>
+    <string name="category_weather">Weather</string>
+</resources>

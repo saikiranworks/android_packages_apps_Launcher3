@@ -288,6 +288,7 @@ android_library {
     name: "Launcher3ResLib",
     srcs: [],
     resource_dirs: ["res"],
+    asset_dirs: ["assets"],
     static_libs: [
         "dynamiccolors",
         "LauncherPluginLib",
@@ -411,6 +412,7 @@ android_app {
         extra_check_modules: ["Launcher3LintChecker"],
         baseline_filename: "lint-baseline.xml",
     },
+    asset_dirs: ["assets"],
     kotlincflags: [
         "-Xjvm-default=all",
     ],
@@ -586,6 +588,7 @@ android_app {
         "launcher.quickstep.protolog.pb",
     ],
 
+    asset_dirs: ["assets"],
     resource_dirs: ["quickstep/res"],
 
     additional_manifests: [

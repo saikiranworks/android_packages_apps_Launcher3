@@ -242,6 +242,8 @@ public class AlphabeticalAppsList implements AllAppsStore.OnUpdateListener {
                 mPrivateProviderManager.getAnimationRunning())) {
             return;
         }
+        // Recategorize from the current installed set (Flowerpot refreshes intent matches).
+        AppsListUtils.clearPackageInfoCache();
         // Sort the list of apps
         mApps.clear();
         mPrivateApps.clear();
