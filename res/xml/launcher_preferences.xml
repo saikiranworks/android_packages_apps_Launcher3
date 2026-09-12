@@ -73,4 +73,11 @@
             android:targetClass="com.android.launcher3.settings.SettingsMisc" />
     </Preference>
 
+    <SwitchPreference
+        android:key="pref_app_library"
+        android:title="@string/app_library_title"
+        android:summary="@string/app_library_summary"
+        android:defaultValue="false"
+        android:persistent="true" />
+
 </androidx.preference.PreferenceScreen>

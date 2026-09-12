@@ -1953,6 +1953,8 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
     public boolean isAppLibrary() {
         return LauncherPrefs.isAppLibrary(mActivityContext.asContext());
+        Context context = mActivityContext.asContext();
+        return LauncherPrefs.APP_LIBRARY.get(context) || !LauncherPrefs.DRAWER_LIST.get(context);
     }
 
     /**

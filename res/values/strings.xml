@@ -712,4 +712,8 @@
     <string name="folder_creator_add" translatable="false">Add</string>
     <string name="folder_creator_cancel" translatable="false">Cancel</string>
 
+    <!-- App Library (categorized drawer on a page past the last home screen) toggle -->
+    <string name="app_library_title">App Library</string>
+    <string name="app_library_summary">Put the categorized apps on a page past the last home screen and turn off the swipe up drawer. Restart the launcher to apply.</string>
+
 </resources>

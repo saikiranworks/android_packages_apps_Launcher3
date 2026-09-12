@@ -450,6 +450,11 @@ public abstract class AbstractStateChangeTouchController
     }
 
     protected boolean shouldOpenAllApps(boolean isDragTowardPositive) {
+        // With the App Library the apps live on the edge past the last page instead, so the
+        // swipe up has nothing to open.
+        if (mLauncher.getWorkspace() != null && mLauncher.getWorkspace().hasAppLibrary()) {
+            return false;
+        }
         return (isDragTowardPositive && !mIsTrackpadReverseScroll)
                 || (!isDragTowardPositive && mIsTrackpadReverseScroll);
     }
