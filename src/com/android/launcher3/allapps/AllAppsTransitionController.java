@@ -18,6 +18,7 @@ package com.android.launcher3.allapps;
 import static com.android.app.animation.Interpolators.DECELERATE_1_7;
 import static com.android.app.animation.Interpolators.LINEAR;
 import static com.android.launcher3.LauncherAnimUtils.SCALE_PROPERTY;
+import static com.android.launcher3.LauncherAnimUtils.VIEW_TRANSLATE_X;
 import static com.android.launcher3.LauncherAnimUtils.VIEW_TRANSLATE_Y;
 import static com.android.launcher3.LauncherState.ALL_APPS;
 import static com.android.launcher3.LauncherState.ALL_APPS_CONTENT;
@@ -124,6 +125,7 @@ public class AllAppsTransitionController
 
     private MultiValueAlpha mAppsViewAlpha;
     private MultiPropertyFactory<View> mAppsViewTranslationY;
+    private MultiPropertyFactory<View> mAppsViewTranslationX;
 
     private boolean mHasScaleEffect;
     private final MSDLPlayerWrapper mMSDLPlayerWrapper;
@@ -175,8 +177,16 @@ public class AllAppsTransitionController
         boolean fromBackground =
                 mLauncher.getStateManager().getCurrentStableState() == BACKGROUND_APP;
         // Allow apps panel to shift the full screen if coming from another app.
-        float shiftRange = fromBackground ? mLauncher.getDeviceProfile().getDeviceProperties().getHeightPx() : mShiftRange;
-        getAppsViewProgressTranslationY().setValue(mProgress * shiftRange);
+        if (isAppLibrary()) {
+            getAppsViewProgressTranslationY().setValue(0f);
+            getAppsViewProgressTranslationX().setValue(
+                    mProgress * mLauncher.getDeviceProfile().getDeviceProperties().getWidthPx());
+        } else {
+            float shiftRange = fromBackground
+                    ? mLauncher.getDeviceProfile().getDeviceProperties().getHeightPx()
+                    : mShiftRange;
+            getAppsViewProgressTranslationY().setValue(mProgress * shiftRange);
+        }
         mLauncher.onAllAppsTransition(1 - progress);
 
         boolean hasScrim = progress < NAV_BAR_COLOR_FORCE_UPDATE_THRESHOLD
@@ -191,6 +201,14 @@ public class AllAppsTransitionController
 
     private MultiProperty getAppsViewProgressTranslationY() {
         return mAppsViewTranslationY.get(INDEX_APPS_VIEW_PROGRESS);
+    }
+
+    private MultiProperty getAppsViewProgressTranslationX() {
+        return mAppsViewTranslationX.get(INDEX_APPS_VIEW_PROGRESS);
+    }
+
+    private boolean isAppLibrary() {
+        return mLauncher.getWorkspace() != null && mLauncher.getWorkspace().hasAppLibrary();
     }
 
     private MultiProperty getAppsViewProgressAlpha() {
@@ -373,6 +391,8 @@ public class AllAppsTransitionController
         mAppsViewAlpha.setUpdateVisibility(true);
         mAppsViewTranslationY = new MultiPropertyFactory<>(
                 mAppsView, VIEW_TRANSLATE_Y, APPS_VIEW_INDEX_COUNT, Float::sum);
+        mAppsViewTranslationX = new MultiPropertyFactory<>(
+                mAppsView, VIEW_TRANSLATE_X, APPS_VIEW_INDEX_COUNT, Float::sum);
     }
 
     /** This might return {@code false} if All Apps is rendered in a separate window. */

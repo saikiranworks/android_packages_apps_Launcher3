@@ -255,6 +255,11 @@ constructor(@ApplicationContext private val encryptedContext: Context) {
     }
 
     companion object {
+
+        @JvmStatic
+        fun isAppLibrary(context: Context) =
+            get(context).get(APP_LIBRARY)
+
         @VisibleForTesting const val BOOT_AWARE_PREFS_KEY = "boot_aware_prefs"
 
         const val COMPOSITION_TRACING_PREF_KEY = "pref_enableCompositionTracing"

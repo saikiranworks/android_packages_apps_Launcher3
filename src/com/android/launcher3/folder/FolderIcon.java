@@ -890,6 +890,9 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
 
     /** Gap between a big folder's preview and the label below it. */
     private int getBigFolderLabelGap() {
+        if (mInfo != null && mInfo.forceBigPreview) {
+            return getResources().getDimensionPixelSize(R.dimen.app_library_tile_label_gap);
+        }
         return Math.round(8 * getResources().getDisplayMetrics().density);
     }
 

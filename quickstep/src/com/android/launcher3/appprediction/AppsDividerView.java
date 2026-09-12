@@ -127,7 +127,9 @@ public class AppsDividerView extends View implements FloatingHeaderRow {
 
     private void updateDividerType() {
         final DividerType dividerType;
-        if (!mTabsHidden) {
+        if (com.android.launcher3.LauncherPrefs.isAppLibrary(getContext())) {
+            dividerType = DividerType.NONE;
+        } else if (!mTabsHidden) {
             dividerType = DividerType.NONE;
         } else {
             // Check how many sections above me.

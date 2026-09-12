@@ -120,6 +120,10 @@ public class AllAppsState extends LauncherState {
 
     @Override
     public ScaleAndTranslation getWorkspaceScaleAndTranslation(Launcher launcher) {
+        if (hasAppLibrary(launcher)) {
+            return new ScaleAndTranslation(NO_SCALE,
+                    -launcher.getDeviceProfile().getDeviceProperties().getWidthPx(), NO_OFFSET);
+        }
         final float scale = shouldReduceWorkspaceBlurUsage(launcher)
                 ? NO_SCALE
                 : launcher.getDeviceProfile().getWorkspaceProfile().getWorkspaceContentScale();
@@ -134,7 +138,22 @@ public class AllAppsState extends LauncherState {
     }
 
     @Override
+    public PageAlphaProvider getWorkspacePageAlphaProvider(Launcher launcher) {
+        if (hasAppLibrary(launcher)) {
+            return DEFAULT_ALPHA_PROVIDER;
+        }
+        return super.getWorkspacePageAlphaProvider(launcher);
+    }
+
+    private static boolean hasAppLibrary(Launcher launcher) {
+        return launcher.getWorkspace() != null && launcher.getWorkspace().hasAppLibrary();
+    }
+
+    @Override
     public boolean shouldBlurWorkspace(Launcher launcher, LauncherState targetState) {
+        if (hasAppLibrary(launcher)) {
+            return false;
+        }
         return !shouldReduceWorkspaceBlurUsage(launcher) && (targetState == ALL_APPS
                 || targetState == NORMAL);
     }
@@ -176,6 +195,9 @@ public class AllAppsState extends LauncherState {
             return true;
         }
         return !AppDrawerStyle.isFullscreen(AppDrawerStyle.get(context));
+            return HOTSEAT_ICONS;
+        }
+        return ALL_APPS_CONTENT | FLOATING_SEARCH_BAR | HOTSEAT_ICONS;
     }
 
     @Override
@@ -211,6 +233,12 @@ public class AllAppsState extends LauncherState {
                 AppDrawerStyle.isCustomColorEnabled(launcher)
                         ? AppDrawerStyle.getCustomBackgroundColor(launcher)
                         : Themes.getAttrColor(launcher, R.attr.allAppsScrimColor));
+        if (hasAppLibrary(launcher)) {
+            return super.getWorkspaceScrimColor(launcher);
+        }
+        int backgroundColor = ColorUtils.setAlphaComponent(
+                Themes.getAttrColor(launcher, R.attr.allAppsScrimColor),
+                LauncherPrefs.APP_DRAWER_OPACITY.get(launcher) * 255 / 100);
         return new ScrimColors(backgroundColor, /* foregroundColor */ Color.TRANSPARENT);
     }
 }

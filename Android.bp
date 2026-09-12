@@ -284,6 +284,11 @@ java_import {
 }
 
 // Library with all the dependencies for building Launcher3
+android_library_import {
+    name: "launcher-blurview",
+    aars: ["libs/BlurView/BlurView-version-3.1.0.aar"],
+}
+
 android_library {
     name: "Launcher3ResLib",
     srcs: [],
@@ -291,6 +296,7 @@ android_library {
     asset_dirs: ["assets"],
     static_libs: [
         "dynamiccolors",
+        "launcher-blurview",
         "LauncherPluginLib",
         "launcher_quickstep_log_protos_lite",
         "androidx-constraintlayout_constraintlayout",

@@ -24,6 +24,7 @@ import android.os.UserManager;
 import androidx.annotation.AnyThread;
 
 import com.android.launcher3.LauncherAppState;
+import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.allapps.BaseAllAppsAdapter.AdapterItem;
 import com.android.launcher3.model.data.AppInfo;
 import com.android.launcher3.search.SearchAlgorithm;
@@ -39,9 +40,13 @@ import java.util.List;
  */
 public class DefaultAppSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
 
+    private static final int MAX_RESULTS_COUNT = 5;
+    private static final java.text.Collator COLLATOR = java.text.Collator.getInstance();
+
     private final LauncherAppState mAppState;
     private final Handler mResultHandler;
     private final boolean mAddNoResultsMessage;
+    private final boolean mAppLibrary;
 
     public DefaultAppSearchAlgorithm(Context context, LooperExecutor uiExecutor) {
         this(context, uiExecutor, false);
@@ -52,6 +57,7 @@ public class DefaultAppSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
         mAppState = LauncherAppState.getInstance(context);
         mResultHandler = new Handler(uiExecutor.getLooper());
         mAddNoResultsMessage = addNoResultsMessage;
+        mAppLibrary = LauncherPrefs.isAppLibrary(context);
     }
 
     @Override
@@ -67,6 +73,9 @@ public class DefaultAppSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
             ArrayList<AdapterItem> result = getTitleMatchResult(mAppState.getContext(), apps.data,
                     query);
             if (mAddNoResultsMessage && result.isEmpty()) {
+            ArrayList<AdapterItem> result =
+                    getTitleMatchResult(apps.data, query, mAppLibrary);
+            if (mAddNoResultsMessage && result.isEmpty() && !(mAppLibrary && query.isEmpty())) {
                 result.add(getEmptyMessageAdapterItem(query));
             }
             mResultHandler.post(() -> callback.onSearchResult(query, result));
@@ -88,6 +97,13 @@ public class DefaultAppSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
     @AnyThread
     public static ArrayList<AdapterItem> getTitleMatchResult(Context context, List<AppInfo> apps,
             String query) {
+    public static ArrayList<AdapterItem> getTitleMatchResult(List<AppInfo> apps, String query) {
+        return getTitleMatchResult(apps, query, false);
+    }
+
+    @AnyThread
+    public static ArrayList<AdapterItem> getTitleMatchResult(
+            List<AppInfo> apps, String query, boolean asRows) {
         // Do an intersection of the words in the query and each title, and filter out all the
         // apps that don't match all of the words in the query.
         final String queryTextLower = query.toLowerCase();
@@ -104,6 +120,21 @@ public class DefaultAppSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
             }
             if (StringMatcherUtility.matches(queryTextLower, info.title.toString(), matcher)) {
                 result.add(AdapterItem.asApp(info));
+        boolean takeAll = asRows && queryTextLower.isEmpty();
+        if (asRows) {
+            apps = new ArrayList<>(apps);
+            ((ArrayList<AppInfo>) apps).sort(
+                    (a, b) -> COLLATOR.compare(a.title.toString(), b.title.toString()));
+        }
+        int resultCount = 0;
+        int total = apps.size();
+        int maxResults = asRows ? Integer.MAX_VALUE : MAX_RESULTS_COUNT;
+        for (int i = 0; i < total && resultCount < maxResults; i++) {
+            AppInfo info = apps.get(i);
+            if (takeAll || StringMatcherUtility.matches(
+                    queryTextLower, info.title.toString(), matcher)) {
+                result.add(asRows ? AdapterItem.asAppRow(info) : AdapterItem.asApp(info));
+                resultCount++;
             }
         }
         return result;

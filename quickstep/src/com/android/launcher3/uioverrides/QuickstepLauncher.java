@@ -147,6 +147,7 @@ import com.android.launcher3.Workspace;
 import com.android.launcher3.accessibility.LauncherAccessibilityDelegate;
 import com.android.launcher3.allapps.AllAppsRecyclerView;
 import com.android.launcher3.allapps.AllAppsStore;
+import com.android.launcher3.applibrary.AppLibraryTouchController;
 import com.android.launcher3.anim.PendingAnimation;
 import com.android.launcher3.apppairs.AppPairIcon;
 import com.android.launcher3.appprediction.PredictionRowView;
@@ -825,6 +826,7 @@ public class QuickstepLauncher extends Launcher implements RecentsViewContainer,
                 list.add(new PortraitStatesTouchController(this));
                 break;
         }
+        list.add(new AppLibraryTouchController(this));
         list.add(new StatusBarTouchController(this, () -> this.isInState(LauncherState.NORMAL)));
         list.add(new TaskViewLaunchTouchController<>(this,
                 animController -> getStateManager().setCurrentUserControlledAnimation(

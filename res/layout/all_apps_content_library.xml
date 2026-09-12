@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?><!-- Copyright (C) 2022 The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<!-- The App Library's page: the tab pill is the topmost thing and the search box sits on the
+     bottom edge, so the header anchors to the top of the page rather than below the box.
+
+     Mirrors all_apps_content.xml, which anchors the header below the search box instead. The
+     anchor is a layout rule the RelativeLayout resolves from the inflated attributes, so it has
+     to be declared here rather than swapped at runtime.
+-->
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <include layout="@layout/all_apps_bottom_sheet_background" />
+
+    <!-- Only the search list sits in the blur target. The target records everything inside it
+         into an offscreen render node on every frame, and the categories have nothing passing
+         behind the search box to blur, so keeping them out of it saves a full screen pass per
+         frame on the page and through the animation that opens it. -->
+    <eightbitlab.com.blurview.BlurTarget
+        android:id="@+id/app_library_blur_target"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentTop="true">
+
+        <include
+            layout="@layout/search_results_rv_layout"
+            android:visibility="gone" />
+    </eightbitlab.com.blurview.BlurTarget>
+
+    <include
+        layout="@layout/all_apps_rv_layout"
+        android:visibility="gone" />
+
+    <com.android.launcher3.allapps.FloatingHeaderView
+        android:id="@+id/all_apps_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:clipToPadding="false"
+        android:layout_alignParentTop="true"
+        android:paddingTop="@dimen/all_apps_header_top_padding"
+        android:paddingBottom="@dimen/all_apps_header_bottom_padding"
+        android:orientation="vertical" >
+
+        <include layout="@layout/floating_header_content" />
+
+        <include layout="@layout/all_apps_personal_work_tabs" />
+
+    </com.android.launcher3.allapps.FloatingHeaderView>
+
+    <!-- App Library only; the container turns these on. -->
+    <com.android.launcher3.applibrary.AppLibraryIndexRail
+        android:id="@+id/app_library_index_rail"
+        android:layout_width="@dimen/app_library_index_width"
+        android:layout_height="match_parent"
+        android:layout_alignParentEnd="true"
+        android:layout_below="@id/all_apps_header"
+        android:layout_above="@id/search_container_all_apps"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/app_library_search_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/app_library_search_scrim_height"
+        android:layout_alignBottom="@id/search_container_all_apps"
+        android:layout_marginBottom="@dimen/app_library_search_scrim_overhang"
+        android:background="@drawable/bg_app_library_search_scrim"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/app_library_search_cancel"
+        android:layout_width="@dimen/app_library_search_cancel_width"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignTop="@id/search_container_all_apps"
+        android:layout_alignBottom="@id/search_container_all_apps"
+        android:layout_marginEnd="@dimen/all_apps_row_horizontal_padding"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:gravity="center"
+        android:text="@string/app_library_search_cancel"
+        android:textColor="@color/materialColorPrimary"
+        android:textSize="17sp"
+        android:visibility="gone" />
+
+    <eightbitlab.com.blurview.BlurView
+        android:id="@+id/app_library_search_blur"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignTop="@id/search_container_all_apps"
+        android:layout_alignBottom="@id/search_container_all_apps"
+        android:layout_alignStart="@id/search_container_all_apps"
+        android:layout_alignEnd="@id/search_container_all_apps"
+        android:visibility="gone" />
+
+    <include layout="@layout/all_apps_fast_scroller" />
+</merge>

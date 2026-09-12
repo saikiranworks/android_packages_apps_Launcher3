@@ -394,6 +394,9 @@ public abstract class LauncherState implements BaseState<LauncherState> {
      * @return {@code true} if the workspace should be blurred alongside wallpaper depth.
      */
     public boolean shouldBlurWorkspace(Launcher launcher, LauncherState targetState) {
+        if (launcher.getWorkspace() != null && launcher.getWorkspace().hasAppLibrary()) {
+            return false;
+        }
         return !shouldReduceWorkspaceBlurUsage(launcher) && targetState == ALL_APPS;
     }
 

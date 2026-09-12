@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2026 PenguinOS
+     SPDX-License-Identifier: Apache-2.0
+-->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <string name="pref_sleep_gesture_title">Double tap to sleep</string>
+    <string name="pref_sleep_gesture_summary">Double tap on empty space for screen off</string>
+
+    <string name="app_library_search_cancel">Cancel</string>
+
+    <string name="app_library_replaces_layout">Disable the App Library to change this</string>
+</resources>

@@ -21,6 +21,7 @@ import static androidx.preference.PreferenceFragmentCompat.ARG_PREFERENCE_ROOT;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Process;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -40,6 +41,7 @@ import androidx.preference.PreferenceFragmentCompat.OnPreferenceStartScreenCallb
 import androidx.preference.PreferenceGroup;
 import androidx.preference.PreferenceGroup.PreferencePositionCallback;
 import androidx.preference.PreferenceScreen;
+import androidx.preference.TwoStatePreference;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.launcher3.LauncherAppState;
@@ -246,6 +248,8 @@ public class SettingsAppDrawer extends CollapsingToolbarBaseActivity
             setPreferencesFromResource(R.xml.launcher_app_drawer_preferences, rootKey);
 
             PreferenceScreen screen = getPreferenceScreen();
+            initPreferences(screen);
+            wireAppLibraryToggle(screen);
 
             mSearchPlacementPref = screen.findPreference(KEY_SEARCH_PLACEMENT);
             mOpenKeyboardPref = screen.findPreference(KEY_OPEN_KEYBOARD);
@@ -272,6 +276,41 @@ public class SettingsAppDrawer extends CollapsingToolbarBaseActivity
 
             if (getActivity() != null && !TextUtils.isEmpty(getPreferenceScreen().getTitle())) {
                 getActivity().setTitle(getPreferenceScreen().getTitle());
+            }
+        }
+
+        private void wireAppLibraryToggle(PreferenceScreen screen) {
+            Preference layout = screen.findPreference(
+                    LauncherPrefs.DRAWER_LIST.getSharedPrefKey());
+            Preference library = screen.findPreference(
+                    LauncherPrefs.APP_LIBRARY.getSharedPrefKey());
+            if (layout == null || !(library instanceof TwoStatePreference toggle)) {
+                return;
+            }
+            applyAppLibraryState(layout, toggle.isChecked());
+            toggle.setOnPreferenceChangeListener((preference, value) -> {
+                applyAppLibraryState(layout, (Boolean) value);
+                getPreferenceManager().getSharedPreferences().edit().commit();
+                Process.killProcess(Process.myPid());
+                return true;
+            });
+        }
+
+        private void applyAppLibraryState(Preference layout, boolean libraryOn) {
+            layout.setEnabled(!libraryOn);
+            layout.setSummary(libraryOn
+                    ? R.string.app_library_replaces_layout
+                    : R.string.drawer_list_summary);
+        }
+
+        private void initPreferences(PreferenceGroup group) {
+            for (int i = group.getPreferenceCount() - 1; i >= 0; i--) {
+                Preference preference = group.getPreference(i);
+                if (!initPreference(preference)) {
+                    group.removePreference(preference);
+                } else if (preference instanceof PreferenceGroup) {
+                    initPreferences((PreferenceGroup) preference);
+                }
             }
         }
 

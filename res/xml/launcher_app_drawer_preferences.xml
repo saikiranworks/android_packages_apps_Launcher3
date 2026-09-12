@@ -200,6 +200,29 @@
         android:key="pref_drawer_list"
         android:title="@string/drawer_list_title"
         android:summary="@string/drawer_list_summary"
+        android:key="pref_app_library"
+        android:title="@string/app_library_title"
+        android:summary="@string/app_library_summary"
+        android:defaultValue="false"
+        android:persistent="true" />
+
+    <SwitchPreferenceCompat
+        android:key="pref_allapps_themed_icons"
+        android:title="@string/pref_themed_icons_title"
+        android:summary="@string/pref_themed_icons_summary"
+        android:defaultValue="false"
+        android:persistent="true" />
+
+    <SwitchPreferenceCompat
+        android:key="pref_drawer_show_labels"
+        android:title="@string/drawer_show_labels"
+        android:defaultValue="true"
+        android:persistent="true" />
+
+    <SwitchPreferenceCompat
+        android:key="pref_drawer_search"
+        android:title="@string/drawer_search_title"
+        android:summary="@string/drawer_search_summary"
         android:defaultValue="true"
         android:persistent="true"
         launcher:iconSpaceReserved="false" />

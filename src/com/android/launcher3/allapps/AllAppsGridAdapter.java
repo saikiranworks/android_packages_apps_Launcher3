@@ -246,6 +246,9 @@ public class AllAppsGridAdapter extends BaseAllAppsAdapter {
                 return totalSpans;
             }
             int viewType = items.get(position).viewType;
+            if (viewType == VIEW_TYPE_ICON_ROW) {
+                return totalSpans;
+            }
             if (viewType == VIEW_TYPE_FOLDER) {
                 // Caddy category tiles are laid out two per row, each taking exactly half the
                 // grid. Sizing them off mAppsPerRow instead (2 of 5 icon columns) left a dead

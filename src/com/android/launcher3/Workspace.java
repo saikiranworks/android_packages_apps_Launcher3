@@ -326,6 +326,7 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
 
     // State related to Launcher Overlay
     private OverlayEdgeEffect mOverlayEdgeEffect;
+    private boolean mHasAppLibrary;
     private boolean mOverlayShown = false;
     private float mOverlayProgress; // 1 -> overlay completely visible, 0 -> home visible
     private final List<LauncherOverlayCallbacks> mOverlayCallbacks = new ArrayList<>();
@@ -1424,6 +1425,32 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
             mEdgeGlowLeft = newEffect;
         }
         onOverlayScrollChanged(0);
+    }
+
+    /**
+     * Puts the App Library on the edge past the last page, so the pages run out into it the way
+     * they run out into the feed on the other side.
+     */
+    private void setupAppLibrary() {
+        if (!LauncherPrefs.isAppLibrary(getContext())) {
+            return;
+        }
+        mHasAppLibrary = true;
+        mLauncherUiState.setAppLibrary(true);
+    }
+
+    /** Whether the App Library replaces the swipe up drawer. */
+    public boolean hasAppLibrary() {
+        return mHasAppLibrary;
+    }
+
+    public boolean isAtAppLibraryEdge() {
+        if (!mHasAppLibrary || getNextPage() != getPageCount() - 1) {
+            return false;
+        }
+        // The drawer is the library's content, so opening it is the whole of the gesture. The
+        // state manager owns the animation and the way back out from here.
+        return mIsRtl ? getScrollX() <= computeMinScroll() : getScrollX() >= computeMaxScroll();
     }
 
     public boolean hasOverlay() {

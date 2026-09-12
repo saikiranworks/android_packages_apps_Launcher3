@@ -35,6 +35,7 @@ import android.text.method.TextKeyListener;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.WindowInsets;
 import android.view.ViewGroup.MarginLayoutParams;
 
 import androidx.core.graphics.ColorUtils;
@@ -74,6 +75,9 @@ public class AppsSearchContainerLayout extends ExtendedEditText
 
     // The amount of pixels to shift down and overlap with the rest of the content.
     private final int mContentOverlap;
+
+    private int mSystemBottomInset;
+    private int mImeInset;
 
     public AppsSearchContainerLayout(Context context) {
         this(context, null);
@@ -138,7 +142,8 @@ public class AppsSearchContainerLayout extends ExtendedEditText
                 Math.round(ICON_VISIBLE_AREA_FACTOR * dp.getWorkspaceProfile().getIconSizePx());
         int iconPadding = cellWidth - iconVisibleSize;
 
-        int myWidth = rowWidth - iconPadding + getPaddingLeft() + getPaddingRight();
+        int myWidth = rowWidth - iconPadding + getPaddingLeft() + getPaddingRight()
+                - mAppsView.getSearchCancelWidth();
         super.onMeasure(makeMeasureSpec(myWidth, EXACTLY), heightMeasureSpec);
     }
 
@@ -153,10 +158,10 @@ public class AppsSearchContainerLayout extends ExtendedEditText
         // Shift the widget horizontally so that its centered in the parent (b/63428078)
         View parent = (View) getParent();
         int availableWidth = parent.getWidth() - parent.getPaddingLeft() - parent.getPaddingRight();
-        int myWidth = right - left;
+        int myWidth = right - left + mAppsView.getSearchCancelWidth();
         int expectedLeft = parent.getPaddingLeft() + (availableWidth - myWidth) / 2;
-        int shift = expectedLeft - left;
-        setTranslationX(shift);
+        setTranslationX(expectedLeft - left);
+        mAppsView.onSearchBoxTranslated(getTranslationX());
 
         final boolean showQsb = Utilities.showQSB(getContext());
         final boolean dockTheme = LauncherPrefs.DOCK_THEME.get(getContext());
@@ -211,6 +216,9 @@ public class AppsSearchContainerLayout extends ExtendedEditText
         float qsbWidgetPadding = res.getDimension(R.dimen.qsb_widget_vertical_padding);
         float innerHeight = qsbWidgetHeight - 2 * qsbWidgetPadding;
         return (innerHeight / 2) * ((float)LauncherPrefs.SEARCH_RADIUS_SIZE.get(context) / 100f);
+        if (!mAppsView.isAppLibrary()) {
+            offsetTopAndBottom(mContentOverlap);
+        }
     }
 
     @Override
@@ -294,9 +302,28 @@ public class AppsSearchContainerLayout extends ExtendedEditText
         MarginLayoutParams mlp = (MarginLayoutParams) getLayoutParams();
         if (mAppsView.getSearchUiDelegate().isSearchBarFloating()
                 || mLauncher.getDeviceProfile().getDeviceProperties().isLargeScreen()) {
+        if (mAppsView.isAppLibrary()) {
+            mSystemBottomInset = insets.bottom;
+            mlp.topMargin = 0;
+            mlp.bottomMargin = mSystemBottomInset + mImeInset;
+        } else {
             mlp.topMargin = insets.top;
         }
         requestLayout();
+    }
+
+    @Override
+    public WindowInsets onApplyWindowInsets(WindowInsets insets) {
+        if (mAppsView.isAppLibrary()) {
+            int ime = insets.getInsets(WindowInsets.Type.ime()).bottom;
+            if (ime != mImeInset) {
+                mImeInset = ime;
+                MarginLayoutParams mlp = (MarginLayoutParams) getLayoutParams();
+                mlp.bottomMargin = mSystemBottomInset + mImeInset;
+                requestLayout();
+            }
+        }
+        return super.onApplyWindowInsets(insets);
     }
 
     @Override

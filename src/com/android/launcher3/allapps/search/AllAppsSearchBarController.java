@@ -27,6 +27,7 @@ import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
 
 import com.android.launcher3.ExtendedEditText;
+import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.allapps.BaseAllAppsAdapter;
 import com.android.launcher3.allapps.BaseAllAppsAdapter.AdapterItem;
@@ -79,6 +80,14 @@ public class AllAppsSearchBarController
                 mSearchAlgorithm.doSearch("", mTextConversions, mCallback);
             }
         });
+        if (LauncherPrefs.isAppLibrary(mInput.getContext())) {
+            mInput.setOnFocusChangeListener((v, hasFocus) -> {
+                if (hasFocus && mInput.getEditableText().length() == 0) {
+                    mSearchAlgorithm.cancel(false);
+                    mSearchAlgorithm.doSearch("", mTextConversions, mCallback);
+                }
+            });
+        }
     }
 
     @Override
@@ -113,6 +122,7 @@ public class AllAppsSearchBarController
         if (mQuery.isEmpty()) {
             mSearchAlgorithm.cancel(true);
             if (mSearchAlgorithm.hasEmptyQueryResults() && mInput.hasFocus()) {
+            if (LauncherPrefs.isAppLibrary(mInput.getContext())) {
                 mSearchAlgorithm.doSearch("", mTextConversions, mCallback);
             } else {
                 mCallback.clearSearchResult();

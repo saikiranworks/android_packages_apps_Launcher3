@@ -281,4 +281,16 @@
 
     <!-- Home screen files -->
     <color name="home_screen_files_folder_icon_color">@color/system_primary_light</color>
+    <!-- The rounded surface the App Library's suggested apps sit on. -->
+    <color name="app_library_suggestions_background">#26FFFFFF</color>
+
+    <!-- Tint over the App Library's frosted search box, matching the dialer's glass bar. -->
+    <color name="app_library_search_blur_overlay">#1AFFFFFF</color>
+    <!-- Base the blur is taken over. The library's page is the wallpaper, which the blur cannot
+         reach, so without a base of its own the glass blurs to a dark hole. -->
+    <color name="app_library_search_glass_base">#40FFFFFF</color>
+
+    <!-- Darkest point of the fade behind the search box, at the bottom of the page. -->
+    <color name="app_library_search_scrim">#D8000000</color>
+    <color name="app_library_search_glass_stroke">#33CCCCCC</color>
 </resources>

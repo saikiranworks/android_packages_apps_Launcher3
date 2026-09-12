@@ -517,6 +517,34 @@
 
     <!-- Search results related parameters -->
     <dimen name="search_row_icon_size">0dp</dimen>
+
+    <!-- App Library search list rows -->
+    <dimen name="all_apps_row_height">64dp</dimen>
+    <dimen name="all_apps_row_horizontal_padding">24dp</dimen>
+    <dimen name="all_apps_row_divider_height">1dp</dimen>
+    <dimen name="all_apps_row_section_text_size">15sp</dimen>
+    <dimen name="all_apps_row_section_height">36dp</dimen>
+    <dimen name="app_library_index_width">28dp</dimen>
+    <dimen name="app_library_index_text_size">10sp</dimen>
+    <dimen name="app_library_index_line_height">15dp</dimen>
+    <dimen name="app_library_row_end_padding">52dp</dimen>
+    <dimen name="app_library_search_cancel_width">88dp</dimen>
+    <dimen name="app_library_search_scrim_height">150dp</dimen>
+    <!-- Negative: carries the fade past the bottom of the search box, so it does not end in a
+         step above the gesture area. -->
+    <dimen name="app_library_search_scrim_overhang">-64dp</dimen>
+    <dimen name="app_library_search_corner_radius">28dp</dimen>
+    <integer name="app_library_search_blur_radius">20</integer>
+    <dimen name="app_library_suggestions_corner_radius">28dp</dimen>
+    <dimen name="app_library_suggestions_margin">16dp</dimen>
+    <dimen name="app_library_suggestions_gap">20dp</dimen>
+    <dimen name="app_library_top_gap">16dp</dimen>
+    <!-- Room under a category tile's panel for its label, and the gap before the next row. -->
+    <dimen name="app_library_tile_label_room">21dp</dimen>
+    <dimen name="app_library_tile_label_gap">4dp</dimen>
+    <dimen name="app_library_tile_row_gap">2dp</dimen>
+    <!-- Half the gap between the two columns of category tiles. -->
+    <dimen name="app_library_tile_side_padding">12dp</dimen>
     <dimen name="search_row_small_icon_size">0dp</dimen>
     <dimen name="padded_rounded_button_padding">8dp</dimen>
 

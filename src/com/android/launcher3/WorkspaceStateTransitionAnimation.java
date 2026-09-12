@@ -65,6 +65,8 @@ import com.android.launcher3.graphics.SysUiScrim;
 import com.android.launcher3.states.EditModeState;
 import com.android.launcher3.states.SpringLoadedState;
 import com.android.launcher3.states.StateAnimationConfig;
+import com.android.launcher3.util.MultiPropertyFactory;
+import com.android.launcher3.util.MultiPropertyFactory.MultiProperty;
 import com.android.launcher3.util.DynamicResource;
 import com.android.systemui.plugins.ResourceProvider;
 
@@ -151,6 +153,17 @@ public class WorkspaceStateTransitionAnimation {
                     hotseatScaleInterpolator);
         }
 
+        propertySetter.setFloat(
+                hotseat.getIconsTranslationX(Hotseat.ICONS_TRANSLATION_X_STATE),
+                MultiPropertyFactory.MULTI_PROPERTY_VALUE,
+                hotseatScaleAndTranslation.translationX,
+                scaleInterpolator);
+        MultiProperty qsbTranslationX = hotseat.getQsbTranslationX();
+        if (qsbTranslationX != null) {
+            propertySetter.setFloat(qsbTranslationX, MultiPropertyFactory.MULTI_PROPERTY_VALUE,
+                    hotseatScaleAndTranslation.translationX, scaleInterpolator);
+        }
+
         Interpolator workspaceFadeInterpolator = config.getInterpolator(ANIM_WORKSPACE_FADE,
                 pageAlphaProvider.interpolator);
         float workspacePageIndicatorAlpha = (elements & WORKSPACE_PAGE_INDICATOR) != 0 ? 1 : 0;
@@ -192,6 +205,10 @@ public class WorkspaceStateTransitionAnimation {
                 hotseatScaleAndTranslation.translationY, hotseatTranslationInterpolator);
         propertySetter.setFloat(mWorkspace.getPageIndicator(), VIEW_TRANSLATE_Y,
                 hotseatScaleAndTranslation.translationY, hotseatTranslationInterpolator);
+        propertySetter.setFloat(hotseat, VIEW_TRANSLATE_X,
+                hotseatScaleAndTranslation.translationX, hotseatTranslationInterpolator);
+        propertySetter.setFloat(mWorkspace.getPageIndicator(), VIEW_TRANSLATE_X,
+                hotseatScaleAndTranslation.translationX, hotseatTranslationInterpolator);
 
         if (centerSpringLoadedStateVertically()) {
             DropTargetBar dropTargetBar = mLauncher.getDropTargetBar();

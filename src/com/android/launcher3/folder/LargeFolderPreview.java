@@ -106,6 +106,7 @@ public class LargeFolderPreview {
     private int mPreviewBottom;
     // True while an app is being dragged over this folder, to show the accept highlight.
     private boolean mAccepting;
+    private boolean mIconsHidden;
 
     /** Corner radius of the frosted tile panel, as a fraction of the panel width. */
     public static final float PANEL_RADIUS_FRACTION = 0.16f;
@@ -317,9 +318,17 @@ public class LargeFolderPreview {
             return;
         }
         for (int i = 0; i < largeCount() && i < mLargeDrawables.size(); i++) {
+        for (int i = 0; i < BIG_FOLDER_LARGE_ICON_COUNT && i < mLargeDrawables.size(); i++) {
             drawCentered(canvas, mLargeDrawables.get(i), mLargeRects[i], LARGE_ICON_FRACTION);
         }
         drawCluster(canvas, mClusterRect);
+    }
+
+    public void setIconsHidden(boolean hidden) {
+        if (mIconsHidden != hidden) {
+            mIconsHidden = hidden;
+            mIcon.invalidate();
+        }
     }
 
     /** Toggles the drag-over "drop here" highlight. Returns true if the state changed. */
@@ -346,6 +355,7 @@ public class LargeFolderPreview {
         updateGeometry(mIcon.getWidth(), mIcon.getHeight(), mIcon.getPaddingTop(),
                 mIcon.getBigFolderLabelHeight());
         if (index < largeCount()) {
+        if (index < BIG_FOLDER_LARGE_ICON_COUNT) {
             Rect cell = mLargeRects[index];
             int size = Math.round(Math.min(cell.width(), cell.height()) * LARGE_ICON_FRACTION);
             out.set(cell.centerX() - size / 2, cell.centerY() - size / 2,
@@ -355,6 +365,7 @@ public class LargeFolderPreview {
         int cx = mClusterRect.centerX();
         int cy = mClusterRect.centerY();
         int mini = index - largeCount();
+        int mini = index - BIG_FOLDER_LARGE_ICON_COUNT;
         if (mini >= Math.min(mClusterDrawables.size(), 4)) {
             out.set(cx, cy, cx, cy);
             return;

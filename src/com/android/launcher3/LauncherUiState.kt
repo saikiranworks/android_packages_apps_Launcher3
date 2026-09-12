@@ -30,6 +30,7 @@ class LauncherUiState {
 
     @Volatile var launcherState: LauncherState = LauncherState.NORMAL
     @Volatile var isOverlayShown = false
+    @Volatile var isAppLibrary = false
     @Volatile var taskbarAlignmentChannelAlpha = 0f
 
     val splitScreenUiState = SplitScreenUiState()

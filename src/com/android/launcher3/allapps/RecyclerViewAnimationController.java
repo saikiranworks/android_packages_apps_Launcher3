@@ -97,8 +97,10 @@ public class RecyclerViewAnimationController {
             if (currentView == null) {
                 continue;
             }
+            int decorTop = allAppsRecyclerView.getLayoutManager() == null ? 0
+                    : allAppsRecyclerView.getLayoutManager().getTopDecorationHeight(currentView);
             if (top == null) {
-                top = currentView.getTop();
+                top = currentView.getTop() - decorTop;
             }
             int adapterPosition = allAppsRecyclerView.getChildAdapterPosition(currentView);
             if (adapterPosition < 0 || adapterPosition >= allAppsAdapters.size()) {
@@ -160,13 +162,13 @@ public class RecyclerViewAnimationController {
 
             // For rows with multiple elements, only count the height once and translate elements to
             // the same y position.
-            int y = top + totalHeight;
+            int y = top + totalHeight + decorTop;
             if (spanIndex > 0) {
                 // Continuation of an existing row; move this item into the row.
                 y -= scaledHeight;
             } else {
                 // Start of a new row contributes to total height.
-                totalHeight += scaledHeight;
+                totalHeight += scaledHeight + decorTop;
                 if (!shouldAnimate) {
                     appRowHeight = scaledHeight;
                 }
@@ -174,6 +176,10 @@ public class RecyclerViewAnimationController {
             currentView.setY(y);
         }
         return totalHeight - appRowHeight;
+    }
+
+    public boolean isAnimating() {
+        return mAnimator != null;
     }
 
     protected void animateToState(boolean expand, long duration, Runnable onEndRunnable) {
