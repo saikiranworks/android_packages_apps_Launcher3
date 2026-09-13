@@ -197,6 +197,14 @@
     </androidx.preference.PreferenceCategory>
 
     <SwitchPreferenceCompat
+        android:key="pref_drawer_list"
+        android:title="@string/drawer_list_title"
+        android:summary="@string/drawer_list_summary"
+        android:defaultValue="true"
+        android:persistent="true"
+        launcher:iconSpaceReserved="false" />
+
+    <SwitchPreferenceCompat
         android:key="pref_drawer_scrollbar"
         android:title="@string/drawer_scrollbar_title"
         android:summary="@string/drawer_scrollbar_summary"

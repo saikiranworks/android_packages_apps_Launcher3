@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="drawer_list_title">Flat app list</string>
+    <string name="drawer_list_summary">Off shows a Categories tab with apps grouped by type</string>
     <string name="category_art_and_design">Art &amp; design</string>
     <string name="category_auto_and_vehicles">Auto &amp; vehicles</string>
     <string name="category_beauty">Beauty</string>

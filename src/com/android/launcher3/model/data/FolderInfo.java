@@ -59,6 +59,22 @@ public class FolderInfo extends CollectionInfo {
     public static final int FLAG_MANUAL_FOLDER_NAME = 0x00000008;
 
     /**
+     * Minimum number of items for a folder to be eligible to render as a "big" (2x2) folder, where
+     * the first few apps are shown as large, directly-launchable icons and the rest are collapsed
+     * into a mini-cluster that opens the folder. See {@link #qualifiesAsBigFolder()}.
+     */
+    public static final int BIG_FOLDER_MIN_ITEMS = 4;
+
+    /** Grid span (both rows and columns) occupied by a big folder. */
+    public static final int BIG_FOLDER_SPAN = 2;
+
+    /**
+     * Number of apps drawn as large, individually launchable icons in a big folder preview. The
+     * remaining apps are drawn as a mini-cluster in the last quadrant, which opens the folder.
+     */
+    public static final int BIG_FOLDER_LARGE_ICON_COUNT = 3;
+
+    /**
      * Different states of folder label.
      */
     public enum LabelState {
@@ -91,8 +107,33 @@ public class FolderInfo extends CollectionInfo {
      */
     private final ArrayList<ItemInfo> contents = new ArrayList<>();
 
+    /**
+     * When true this folder always renders as a big (2x2) iOS-style preview, regardless of its
+     * container or app count. Set on the transient auto-categorized folders shown in the app drawer
+     * ("Caddy" mode); it is not persisted (drawer folders are rebuilt on each bind).
+     */
+    public boolean forceBigPreview = false;
+
     public FolderInfo() {
         itemType = LauncherSettings.Favorites.ITEM_TYPE_FOLDER;
+    }
+
+    /**
+     * Whether this folder is currently laid out as a big (2x2) folder on the workspace. The
+     * footprint is the source of truth (persisted via the existing spanX/spanY columns), so this
+     * stays correct across reloads without any schema change.
+     */
+    public boolean isBigFolder() {
+        return spanX >= BIG_FOLDER_SPAN && spanY >= BIG_FOLDER_SPAN;
+    }
+
+    /**
+     * Whether this folder holds enough items to be shown as a big folder. Being eligible does not
+     * guarantee it is big: it only becomes big when there is also room on the grid for the 2x2
+     * footprint (see the workspace-side sizing logic).
+     */
+    public boolean qualifiesAsBigFolder() {
+        return getContents().size() >= BIG_FOLDER_MIN_ITEMS;
     }
 
     @Override

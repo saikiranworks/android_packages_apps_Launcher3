@@ -34,6 +34,13 @@ constructor() {
 
     open fun prepareToOpenFolder(folder: Folder) {}
 
+    /**
+     * Same as [prepareToOpenFolder] for surfaces that aren't a workspace [Folder] -- the drawer's
+     * category page, for one. Captures the backdrop as-is; the caller is responsible for calling it
+     * before the new surface is attached, so the snapshot doesn't include it.
+     */
+    open fun prepareToOpenBlurSurface() {}
+
     open fun drawFolderBlur(canvas: Canvas, pathWrapper: PathWrapper?, view: View) {}
 
     open fun folderCloseComplete() {}

@@ -343,6 +343,29 @@ public abstract class BaseAllAppsAdapter
             case VIEW_TYPE_SEARCH_THUMBNAILS:
                 return new ViewHolder(mLayoutInflater.inflate(
                         R.layout.search_thumbnails, parent, false));
+            case VIEW_TYPE_FOLDER: {
+                // Caddy: an auto-categorized folder rendered as a big iOS-style tile. It takes half
+                // the grid width (see GridSpanSizer) so two sit side by side, and is square: the
+                // preview inside is a 2x2 arrangement, so a tile sized off the icon-row height
+                // instead came out wider than it is tall and the cluster floated in dead space.
+                // The FolderIcon is inflated/attached on bind.
+                FrameLayout tile = new FrameLayout(parent.getContext()) {
+                    @Override
+                    protected void onMeasure(int widthSpec, int heightSpec) {
+                        super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(
+                                MeasureSpec.getSize(widthSpec), MeasureSpec.EXACTLY));
+                    }
+                };
+                tile.setLayoutParams(new RecyclerView.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+                // Inset each tile by half the gap we want between them, so the gap down the middle
+                // of the row matches the recycler's own left/right margin at the screen edges.
+                int tilePad = mActivityContext.getDeviceProfile()
+                        .getAllAppsProfile().getLeftRightMargin() / 2;
+                tile.setPadding(tilePad, tilePad, tilePad, tilePad);
+                return new ViewHolder(tile);
+            }
             default:
                 if (mAdapterProvider.isViewSupported(viewType)) {
                     return mAdapterProvider.onCreateViewHolder(mLayoutInflater, parent, viewType);
@@ -397,15 +420,6 @@ public abstract class BaseAllAppsAdapter
                                     privateProfileManager.getReadyToAnimate())
                                 && privateProfileManager.getCurrentState() == STATE_ENABLED
                                 ? 0 : 1);
-			/*
-                        Log.d(TAG, "onBindViewHolder: "
-                                + "isPrivateSpaceItem: " + isPrivateSpaceItem
-                        + " isStateTransitioning: " + privateProfileManager.isStateTransitioning()
-                        + " isScrolling: " + privateProfileManager.isScrolling()
-                        + " readyToAnimate: " + privateProfileManager.getReadyToAnimate()
-                        + " currentState: " + privateProfileManager.getCurrentState()
-                        + " currentAlpha: " + icon.getAlpha());
-			*/
                     }
                     // Views can still be bounded before the app list is updated hence showing icons
                     // after collapsing.
@@ -477,6 +491,22 @@ public abstract class BaseAllAppsAdapter
             case VIEW_TYPE_WORK_EDU_CARD:
                 ((WorkEduCard) holder.itemView).setPosition(position);
                 break;
+            case VIEW_TYPE_FOLDER: {
+                // Caddy: inflate/attach the category FolderIcon (big preview) into its tile.
+                FolderInfo folderInfo = mApps.getAdapterItems().get(position).folderInfo;
+                ViewGroup container = (ViewGroup) holder.itemView;
+                container.removeAllViews();
+                if (folderInfo != null) {
+                    FolderIcon folderIcon = FolderIcon.inflateIcon(
+                            R.layout.all_apps_big_folder_icon,
+                            ActivityContext.lookupContext(container.getContext()),
+                            container, folderInfo);
+                    container.addView(folderIcon, new FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT));
+                }
+                break;
+            }
             default:
                 if (mAdapterProvider.isViewSupported(holder.getItemViewType())) {
                     mAdapterProvider.onBindView(holder, position);

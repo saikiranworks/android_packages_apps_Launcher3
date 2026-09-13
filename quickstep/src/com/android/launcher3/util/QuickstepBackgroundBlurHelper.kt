@@ -87,6 +87,21 @@ constructor(
         folderIcon.setTextVisible(false)
         folderIcon.setIconVisible(false)
 
+        captureBackdrop()
+
+        folderIcon.folderName.visibility = folderNameVisibility
+        folderIcon.setIconVisible(isIconVisible)
+    }
+
+    override fun prepareToOpenBlurSurface() {
+        if (!isBlurEnabled()) {
+            return
+        }
+        captureBackdrop()
+    }
+
+    /** Records the drag layer as it currently looks, to be blurred behind the opening surface. */
+    private fun captureBackdrop() {
         val dragLayer = activityContext.dragLayer
 
         // Exclude other folders attached to the drag layer to protect against
