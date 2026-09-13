@@ -66,16 +66,16 @@ public class LargeFolderPreview {
     // Gap between the four quadrants, as a fraction of the preview side.
     private static final float QUADRANT_GAP_FRACTION = 0.06f;
     // Large icon size within its quadrant.
-    private static final float LARGE_ICON_FRACTION = 0.96f;
+    private static final float LARGE_ICON_FRACTION = 0.82f;
     // Mini icon size, as a fraction of the quadrant side. Together with the spacing below this
     // makes the 2x2 mini block a centred island inside its quadrant rather than something that
     // fills it: measured against the reference launcher, the large icon is ~2.9x a mini icon and
     // the gap between minis is ~0.47x a mini. Sizing the minis off the quadrant directly (a half
     // quadrant each, less a hairline gap) made them ~2.3x, so they read as too big and sat on a
     // different rhythm from the large icons beside them.
-    private static final float CLUSTER_ICON_FRACTION = 0.33f;
+    private static final float CLUSTER_ICON_FRACTION = 0.30f;
     // Centre-to-centre distance between adjacent mini icons, as a fraction of the quadrant side.
-    private static final float CLUSTER_SPACING_FRACTION = 0.485f;
+    private static final float CLUSTER_SPACING_FRACTION = 0.45f;
 
     // Aurora burnt-orange accent, used for the drag-over "drop here" ring.
     private static final int ACCENT = 0xFFC8783E;
