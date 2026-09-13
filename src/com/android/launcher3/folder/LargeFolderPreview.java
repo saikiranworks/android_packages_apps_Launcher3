@@ -56,7 +56,7 @@ import java.util.List;
 public class LargeFolderPreview {
 
     // Fraction of the available (above-label) area used by the square preview.
-    private static final float PREVIEW_SIZE_FRACTION = 0.92f;
+    private static final float PREVIEW_SIZE_FRACTION = 0.94f;
     // Hard cap on the preview side, in dp, for *workspace* folders only. A workspace big folder
     // spans 2x2 grid cells, so sizing it only off the cell made the same folder visibly bigger on
     // a 4x4 grid (~170dp) than on a 5x5 (~136dp). Icon size is no use as a reference because it
@@ -277,7 +277,7 @@ public class LargeFolderPreview {
         float pad = gap * 0.5f;
         mPanelRect.set(left - pad, previewTop - pad, left + side + pad, previewTop + side + pad);
 
-        mPreviewBottom = Math.round(mPanelRect.bottom);
+        mPreviewBottom = previewTop + side;
         return mPreviewBottom;
     }
 

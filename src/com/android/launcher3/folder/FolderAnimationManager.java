@@ -21,6 +21,7 @@ import static android.view.View.ALPHA;
 import static com.android.launcher3.LauncherAnimUtils.getScaleProperty;
 import static com.android.launcher3.folder.ClippedFolderIconLayoutRule.MAX_NUM_ITEMS_IN_PREVIEW;
 import static com.android.launcher3.folder.FolderGridOrganizer.createFolderGridOrganizer;
+import static com.android.launcher3.folder.FolderIcon.BIG_PREVIEW_ALPHA;
 import static com.android.launcher3.util.MultiPropertyFactory.MULTI_PROPERTY_VALUE;
 
 import android.animation.Animator;
@@ -67,6 +68,7 @@ public class FolderAnimationManager implements FolderAnimationCreator {
     private static final float EXTRA_FOLDER_REVEAL_RADIUS_PERCENTAGE = 0.125F;
     private static final int FOLDER_NAME_ALPHA_DURATION = 32;
     private static final int LARGE_FOLDER_FOOTER_DURATION = 128;
+    private static final float BIG_FOLDER_FADE_FRACTION = 0.3f;
 
     private Folder mFolder;
     private FolderPagedView mContent;
@@ -142,18 +144,32 @@ public class FolderAnimationManager implements FolderAnimationCreator {
         ClippedFolderIconLayoutRule rule = mFolderIcon.getLayoutRule();
         final List<View> itemsInPreview = getPreviewIconsOnPage(0);
 
+        // A big (2x2) folder animates from/to its large preview panel, not the small circular
+        // preview, and skips the small preview-item fly -- that mismatch was the "small folder"
+        // flash on open/close. Normal folders keep the exact existing path below.
+        final boolean bigFolder = mFolderIcon.isBigFolder();
+        final Rect bigPreviewRect = new Rect();
+        if (bigFolder) {
+            mFolderIcon.getPreviewBounds(bigPreviewRect);
+        }
+
         // Match position of the FolderIcon
         final Rect folderIconPos = new Rect();
         float scaleRelativeToDragLayer = mFolder.mActivityContext.getDragLayer()
                 .getDescendantRectRelativeToSelf(mFolderIcon, folderIconPos);
         int scaledRadius = mPreviewBackground.getScaledRadius();
-        float initialSize = (scaledRadius * 2) * scaleRelativeToDragLayer;
+        float initialSize = bigFolder
+                ? bigPreviewRect.width() * scaleRelativeToDragLayer
+                : (scaledRadius * 2) * scaleRelativeToDragLayer;
 
         // Match size/scale of icons in the preview
         float previewScale = rule.scaleForItem(itemsInPreview.size(), 0);
         float previewSize = rule.getIconSize() * previewScale;
         float baseIconSize = getBubbleTextView(itemsInPreview.get(0)).getIconSize();
-        float initialScale = previewSize / baseIconSize * scaleRelativeToDragLayer;
+        float initialScale = bigFolder
+                ? (lp.width > 0 ? bigPreviewRect.width() / (float) lp.width * scaleRelativeToDragLayer
+                        : 1f)
+                : previewSize / baseIconSize * scaleRelativeToDragLayer;
         final float finalScale = 1f;
         float scale = mIsOpening ? initialScale : finalScale;
         mFolder.setPivotX(0);
@@ -177,18 +193,27 @@ public class FolderAnimationManager implements FolderAnimationCreator {
         final int paddingOffsetX = (int) (mContent.getPaddingLeft() * initialScale);
         final int paddingOffsetY = (int) (mContent.getPaddingTop() * initialScale);
 
+        // Big folders anchor to their large preview panel; normal folders to the small preview.
+        float previewOffsetX = bigFolder ? bigPreviewRect.left : mPreviewBackground.getOffsetX();
+        float previewOffsetY = bigFolder ? bigPreviewRect.top : mPreviewBackground.getOffsetY();
         int initialX = folderIconPos.left + mFolder.getPaddingLeft()
-                + Math.round(mPreviewBackground.getOffsetX() * scaleRelativeToDragLayer)
+                + Math.round(previewOffsetX * scaleRelativeToDragLayer)
                 - paddingOffsetX - previewItemOffsetX;
         int initialY = folderIconPos.top + mFolder.getPaddingTop()
-                + Math.round(mPreviewBackground.getOffsetY() * scaleRelativeToDragLayer)
+                + Math.round(previewOffsetY * scaleRelativeToDragLayer)
                 - paddingOffsetY;
         final float xDistance = initialX - lp.x;
         final float yDistance = initialY - lp.y;
 
-        // Set up the Folder background.
-        final int initialColor = Themes.getAttrColor(mContext, R.attr.folderPreviewColor);
-        final int finalColor = Themes.getAttrColor(mContext, R.attr.folderBackgroundColor);
+        // Set up the Folder background. A big ("caddy") folder expands out of a frosted translucent
+        // tile, so the open folder paints that same surface -- the themed folderBackgroundColor is
+        // an opaque panel, which read as a different background from the tile it grew from.
+        final int initialColor = bigFolder
+                ? LargeFolderPreview.getPanelColor(mContext)
+                : Themes.getAttrColor(mContext, R.attr.folderPreviewColor);
+        final int finalColor = bigFolder
+                ? LargeFolderPreview.getPanelColor(mContext)
+                : Themes.getAttrColor(mContext, R.attr.folderBackgroundColor);
 
         mFolderBackground.mutate();
         mFolderBackground.setColor(mIsOpening ? initialColor : finalColor);
@@ -244,7 +269,15 @@ public class FolderAnimationManager implements FolderAnimationCreator {
         }
         play(a, getAnimator(mFolder.mFooter, ALPHA, 0, 1f), footerStartDelay, footerAlphaDuration);
 
-        ShapeDelegate shapeDelegate = ThemeManager.INSTANCE.get(mContext).getFolderShape();
+        // Big ("caddy") folders collapse into their large 2x2 preview tile, whose panel corner
+        // radius is width * 0.16 (see LargeFolderPreview). getFolderShape() is a Circle for round
+        // icon packs, which made the folder collapse to a circle and then snap to the rounded-square
+        // tile on close. The reveal computes its closed corner radius as (startRect.width() / 2) *
+        // radiusRatio, so a RoundedSquare(0.32) reproduces the tile exactly and the folder morphs
+        // smoothly between the tile and the open folder both ways. Normal folders keep the theme.
+        ShapeDelegate shapeDelegate = bigFolder
+                ? new ShapeDelegate.RoundedSquare(0.32f)
+                : ThemeManager.INSTANCE.get(mContext).getFolderShape();
         // Create reveal animator for the folder background
         play(a, shapeDelegate.createRevealAnimator(
                 mFolder, startRect, endRect, finalRadius, !mIsOpening));
@@ -333,6 +366,9 @@ public class FolderAnimationManager implements FolderAnimationCreator {
                 mFolder.mFooter.setScaleY(1f);
                 mFolder.mFooter.setTranslationX(0f);
                 mFolder.getFolderName().setAlpha(1f);
+                // Also runs on cancel, which would otherwise leave the cross-fade stuck part way.
+                mFolderIcon.setBigPreviewAlpha(1f);
+                mFolder.setAlpha(1f);
 
                 mFolder.setClipChildren(mFolderClipChildren);
                 mFolder.setClipToPadding(mFolderClipToPadding);
@@ -353,11 +389,42 @@ public class FolderAnimationManager implements FolderAnimationCreator {
             );
         }
 
-        int radiusDiff = scaledRadius - mPreviewBackground.getRadius();
-        addPreviewItemAnimators(a, initialScale / scaleRelativeToDragLayer,
-                // Background can have a scaled radius in drag and drop mode, so we need to add the
-                // difference to keep the preview items centered.
-                (int) (previewItemOffsetX / scaleRelativeToDragLayer) + radiusDiff, radiusDiff);
+        if (!bigFolder) {
+            // Big folders don't draw the small clipped preview items, so don't fly them in/out.
+            int radiusDiff = scaledRadius - mPreviewBackground.getRadius();
+            addPreviewItemAnimators(a, initialScale / scaleRelativeToDragLayer,
+                    // Background can have a scaled radius in drag and drop mode, so we need to add
+                    // the difference to keep the preview items centered.
+                    (int) (previewItemOffsetX / scaleRelativeToDragLayer) + radiusDiff, radiusDiff);
+        } else {
+            // Cross-fade the folder's real content against the tile's big preview.
+            //
+            // A normal folder hides its icon for the whole animation and instead flies the small
+            // clipped preview items to/from the folder grid, which visually bridges the two. A big
+            // folder has no such preview items, so with the icon hidden the only thing on screen is
+            // the folder content scaling between tile size and full size: on close it shrank to a
+            // grid of tiny icons and the tile's real preview (3 large icons + cluster) appeared in a
+            // single frame at closeComplete(). That one-frame swap is the "renders small then snaps"
+            // pop.
+            //
+            // The tile therefore stays drawn for the whole animation (Folder owns the icon's
+            // visibility) and the two cross-fade at the end of the close.
+            //
+            // The fade goes on the folder view, not on its content: the tile is painted by the
+            // workspace, underneath the folder, so fading only the content left the folder's own
+            // glass panel covering it. The tile fading in behind that panel was invisible -- an
+            // empty panel held for most of the close, then the icons appeared in a single frame
+            // once closeComplete() detached the folder. Fading the folder takes its panel along.
+            mFolder.setAlpha(mIsOpening ? 0f : 1f);
+            mFolderIcon.setBigPreviewAlpha(mIsOpening ? 1f : 0f);
+            // Both halves share one window so they stay in step. getAnimator() reverses the
+            // endpoints when closing, so the tile is 1 -> 0 on open and 0 -> 1 on close, and the
+            // folder the other way around.
+            int fade = Math.max(1, Math.round(mDuration * BIG_FOLDER_FADE_FRACTION));
+            int fadeDelay = mIsOpening ? 0 : mDuration - fade;
+            play(a, getAnimator(mFolder, ALPHA, 0f, 1f), fadeDelay, fade);
+            play(a, getAnimator(mFolderIcon, BIG_PREVIEW_ALPHA, 1f, 0f), fadeDelay, fade);
+        }
         return a;
     }
 

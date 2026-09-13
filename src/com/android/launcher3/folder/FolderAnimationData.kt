@@ -75,8 +75,24 @@ data class FolderAnimationData(
                 )
             val scaledFolderRadius: Int = previewBackground.scaledRadius
             val baseIconSize: Float = getBubbleTextView(itemsInPreview[0]).iconSize.toFloat()
-            val initialFolderSize = (scaledFolderRadius * 2) * scaleRelativeToDragLayer
-            val initialFolderScale = previewSize / baseIconSize * scaleRelativeToDragLayer
+
+            // Big ("caddy") folders zoom as one panel from their large 2x2 preview tile, not from
+            // the small circular preview. Anchoring the container scale/position to the big preview
+            // bounds (and zeroing the per-icon fly in IconAnimationData) removes the fan-out.
+            val bigFolder = folderIcon.isBigFolder
+            val bigPreviewRect = Rect()
+            if (bigFolder) folderIcon.getPreviewBounds(bigPreviewRect)
+
+            val initialFolderSize =
+                if (bigFolder) bigPreviewRect.width() * scaleRelativeToDragLayer
+                else (scaledFolderRadius * 2) * scaleRelativeToDragLayer
+            val initialFolderScale =
+                if (bigFolder)
+                    (if (layoutParams.width > 0)
+                        bigPreviewRect.width() / layoutParams.width.toFloat() *
+                            scaleRelativeToDragLayer
+                    else 1f)
+                else previewSize / baseIconSize * scaleRelativeToDragLayer
 
             // Get offsets for Previews and Content
             val initialPreviewItemOffsetX =
@@ -87,16 +103,21 @@ data class FolderAnimationData(
             val contentOffsetY = (content.paddingTop * initialFolderScale).toInt()
 
             // Get initial position of folder
+            // Big folders anchor to their large preview tile; normal folders to the small preview.
+            val previewOffX =
+                if (bigFolder) bigPreviewRect.left.toFloat() else previewBackground.offsetX.toFloat()
+            val previewOffY =
+                if (bigFolder) bigPreviewRect.top.toFloat() else previewBackground.offsetY.toFloat()
             val initialX =
                 ((folderIconWorkspacePosition.left +
                     paddingLeft +
-                    Math.round(previewBackground.offsetX * scaleRelativeToDragLayer)) -
+                    Math.round(previewOffX * scaleRelativeToDragLayer)) -
                     contentOffsetX -
                     initialPreviewItemOffsetX)
             val initialY =
                 ((folderIconWorkspacePosition.top +
                     paddingTop +
-                    Math.round(previewBackground.offsetY * scaleRelativeToDragLayer)) -
+                    Math.round(previewOffY * scaleRelativeToDragLayer)) -
                     contentOffsetY)
 
             // Get scaled height of content and radius of background

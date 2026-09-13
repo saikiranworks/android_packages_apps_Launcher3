@@ -51,16 +51,23 @@ public class FolderAdaptiveIcon extends AdaptiveIconDrawable {
 
     private final Drawable mBadge;
     private final Path mMask;
+    private final boolean mIsBigFolder;
     private final ConstantState mConstantState;
     private static final Rect sTmpRect = new Rect();
 
-    private FolderAdaptiveIcon(Drawable bg, Drawable fg, Drawable badge, Path mask) {
+    private FolderAdaptiveIcon(Drawable bg, Drawable fg, Drawable badge, Path mask,
+            boolean isBigFolder) {
         super(bg, fg);
         mBadge = badge;
         mMask = mask;
+        mIsBigFolder = isBigFolder;
 
         mConstantState = new MyConstantState(bg.getConstantState(), fg.getConstantState(),
-                badge.getConstantState(), mask);
+                badge.getConstantState(), mask, isBigFolder);
+    }
+
+    public boolean isBigFolder() {
+        return mIsBigFolder;
     }
 
     @Override
@@ -104,12 +111,14 @@ public class FolderAdaptiveIcon extends AdaptiveIconDrawable {
 
         // Initialize the actual draw commands on the UI thread to avoid race conditions with
         // FolderIcon draw pass
+        final boolean[] isBigFolder = new boolean[1];
         try {
             MAIN_EXECUTOR.submit(() -> {
                 FolderIcon icon = activity.findFolderIcon(folderId);
                 if (icon == null) {
                     throw new IllegalArgumentException("Folder not found with id: " + folderId);
                 }
+                isBigFolder[0] = icon.isBigFolder();
                 initLayersOnUiThread(icon, requestedSize, bgCanvas, fgCanvas, badgeCanvas);
             }).get();
         } catch (Exception e) {
@@ -133,7 +142,8 @@ public class FolderAdaptiveIcon extends AdaptiveIconDrawable {
                 new BitmapRendererDrawable(
                         c -> c.drawBitmap(fgBitmap, -shift, -shift, foregroundPaint)),
                 new BitmapRendererDrawable(c -> c.drawPicture(badge)),
-                mask);
+                mask,
+                isBigFolder[0]);
     }
 
     @UiThread
@@ -156,14 +166,20 @@ public class FolderAdaptiveIcon extends AdaptiveIconDrawable {
         // Draw foreground
         foregroundCanvas.save();
         foregroundCanvas.translate(previewShiftX, previewShiftY);
-        icon.getPreviewItemManager().draw(foregroundCanvas);
+        if (icon.isBigFolder()) {
+            icon.getLargeFolderPreview().draw(foregroundCanvas);
+        } else {
+            icon.getPreviewItemManager().draw(foregroundCanvas);
+        }
         foregroundCanvas.restore();
 
         // Draw background
-        backgroundCanvas.save();
-        backgroundCanvas.translate(previewShiftX, previewShiftY);
-        icon.getFolderBackground().drawBackground(backgroundCanvas);
-        backgroundCanvas.restore();
+        if (!icon.isBigFolder()) {
+            backgroundCanvas.save();
+            backgroundCanvas.translate(previewShiftX, previewShiftY);
+            icon.getFolderBackground().drawBackground(backgroundCanvas);
+            backgroundCanvas.restore();
+        }
     }
 
     @Override
@@ -176,18 +192,21 @@ public class FolderAdaptiveIcon extends AdaptiveIconDrawable {
         private final ConstantState mFg;
         private final ConstantState mBadge;
         private final Path mMask;
+        private final boolean mIsBigFolder;
 
-        MyConstantState(ConstantState bg, ConstantState fg, ConstantState badge, Path mask) {
+        MyConstantState(ConstantState bg, ConstantState fg, ConstantState badge, Path mask,
+                boolean isBigFolder) {
             mBg = bg;
             mFg = fg;
             mBadge = badge;
             mMask = mask;
+            mIsBigFolder = isBigFolder;
         }
 
         @Override
         public Drawable newDrawable() {
             return new FolderAdaptiveIcon(mBg.newDrawable(), mFg.newDrawable(),
-                    mBadge.newDrawable(), mMask);
+                    mBadge.newDrawable(), mMask, mIsBigFolder);
         }
 
         @Override

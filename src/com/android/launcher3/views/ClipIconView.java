@@ -47,6 +47,7 @@ import com.android.launcher3.Flags;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.dragndrop.FolderAdaptiveIcon;
+import com.android.launcher3.folder.LargeFolderPreview;
 import com.android.launcher3.graphics.PathWrapper;
 import com.android.launcher3.graphics.ShapeDelegate;
 import com.android.launcher3.graphics.ThemeManager;
@@ -59,8 +60,19 @@ import com.android.launcher3.graphics.ThemeManager;
 public class ClipIconView extends View implements ClipPathView {
 
     private static final Rect sTmpRect = new Rect();
+    private static final Rect sTmpRectFG = new Rect();
+
+    /**
+     * Bounds of the adaptive icon's foreground layer. Per instance: it is derived from this view's
+     * own {@link #mFinalDrawableBounds}, so a static one let whichever ClipIconView called
+     * setIcon() last decide how big every other one drew its foreground.
+     */
+    private final Rect mForegroundBounds = new Rect();
 
     private final int mBlurSizeOutline;
+    private static final float BIG_FOLDER_RADIUS_RATIO =
+            LargeFolderPreview.PANEL_RADIUS_FRACTION * 2f;
+
     private final boolean mIsRtl;
 
     private @Nullable Drawable mForeground;
@@ -69,6 +81,7 @@ public class ClipIconView extends View implements ClipPathView {
 
     private boolean mIsAdaptiveIcon = false;
     private boolean mIsFolderIcon = false;
+    private boolean mIsBigFolderIcon = false;
 
     private ValueAnimator mRevealAnimator;
 
@@ -181,8 +194,10 @@ public class ClipIconView extends View implements ClipPathView {
                         shape = mCurrentShape;
                     } else {
                         final ThemeManager themeManager = ThemeManager.INSTANCE.get(getContext());
-                        shape = mIsFolderIcon ? themeManager.getFolderShape()
-                                : themeManager.getIconShape();
+                        shape = mIsBigFolderIcon
+                                ? new ShapeDelegate.RoundedSquare(BIG_FOLDER_RADIUS_RATIO)
+                                : mIsFolderIcon ? themeManager.getFolderShape()
+                                        : themeManager.getIconShape();
                     }
                     mRevealAnimator = shape.createRevealAnimator(this, mStartRevealRect,
                             mOutline, mTaskCornerRadius, !isOpening);
@@ -205,9 +220,11 @@ public class ClipIconView extends View implements ClipPathView {
                     : (int) (((height * drawableScale) - height) / 2);
             int diffX = dp.getDeviceProperties().isLandscape() ? (int) (((width * drawableScale) - width) / 2)
                     : 0;
+            sTmpRectFG.set(mForegroundBounds);
             sTmpRect.set(mFinalDrawableBounds);
             sTmpRect.offset(diffX, diffY);
-            mForeground.setBounds(sTmpRect);
+            sTmpRectFG.offset(diffX, diffY);
+            mForeground.setBounds(sTmpRectFG);
         }
         invalidate();
         invalidateOutline();
@@ -240,7 +257,11 @@ public class ClipIconView extends View implements ClipPathView {
         if (mIsAdaptiveIcon) {
             mIsFolderIcon = drawable instanceof FolderAdaptiveIcon;
             final ThemeManager themeManager = ThemeManager.INSTANCE.get(getContext());
-            if (mIsFolderIcon) {
+            mIsBigFolderIcon = mIsFolderIcon
+                    && ((FolderAdaptiveIcon) drawable).isBigFolder();
+            if (mIsBigFolderIcon) {
+                mCurrentShape = new ShapeDelegate.RoundedSquare(BIG_FOLDER_RADIUS_RATIO);
+            } else if (mIsFolderIcon) {
                 mCurrentShape = themeManager.getFolderShape();
             } else if (usingCustomShape) {
                 mCurrentShape = themeManager.getIconShape();
@@ -269,7 +290,8 @@ public class ClipIconView extends View implements ClipPathView {
             if (!mIsFolderIcon) {
                 mFinalDrawableBounds.inset(iconOffset - blurMargin, iconOffset - blurMargin);
             }
-            mForeground.setBounds(mFinalDrawableBounds);
+            mForegroundBounds.set(mFinalDrawableBounds);
+            mForeground.setBounds(mForegroundBounds);
             mBackground.setBounds(mFinalDrawableBounds);
 
             mStartRevealRect.set(0, 0, originalWidth, originalHeight);

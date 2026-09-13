@@ -45,6 +45,14 @@ data class ClipRevealData(
     companion object Factory {
         private const val CONTENT_REVEAL_PADDING_PERCENTAGE = ICON_OVERLAP_FACTOR - 1
 
+        // Big ("caddy") folders collapse into their large 2x2 preview tile, whose panel corner
+        // radius is width * 0.16 (see LargeFolderPreview). The reveal computes its closed corner
+        // radius as (startRect.width() / 2) * radiusRatio, so a RoundedSquare(0.32) reproduces the
+        // tile's rounded-square exactly. Using it (instead of the theme's folder shape, which is a
+        // Circle for round icon packs) stops the folder collapsing to a circle and then snapping to
+        // the square tile -- it now morphs smoothly between the tile and the open folder.
+        private const val BIG_FOLDER_REVEAL_RADIUS_RATIO = 0.32f
+
         /** Calculates start and end values for revealing [Folder] background and content */
         fun Folder.getClipRevealData(
             shapeDelegate: ShapeDelegate,
@@ -52,6 +60,10 @@ data class ClipRevealData(
         ): ClipRevealData {
             val folderBackground = background as GradientDrawable
             val deviceProfile = mActivityContext.deviceProfile
+            val effectiveShape =
+                if (folderIcon.isBigFolder)
+                    ShapeDelegate.RoundedSquare(BIG_FOLDER_REVEAL_RADIUS_RATIO)
+                else shapeDelegate
 
             with(folderAnimationData) {
                 // Setup start and end area for revealing Folder background
@@ -90,7 +102,7 @@ data class ClipRevealData(
                     Rect(pageStart, 0, pageStart + layoutParams.width, layoutParams.height)
                 return ClipRevealData(
                     isOpening = folderAnimationData.isOpening,
-                    shapeDelegate = shapeDelegate,
+                    shapeDelegate = effectiveShape,
                     backgroundStartRect = backgroundStartRect,
                     backgroundEndRect = backgroundEndRect,
                     contentStart = contentStart,

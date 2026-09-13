@@ -948,8 +948,19 @@ public class CellLayout extends ViewGroup {
         DeviceProfile grid = mActivity.getDeviceProfile();
         float iconVisibleRadius = ICON_VISIBLE_AREA_FACTOR
                 * grid.getWorkspaceProfile().getIconSizePx() / 2;
+        // Size the radius to the span of whatever occupies the target cell. For a 1x1 app this is
+        // unchanged (folder creation still needs precision); for a big (multi-cell) folder it grows
+        // to cover the whole footprint, so a drop anywhere over a 2x2 folder registers as add-to-
+        // folder instead of falling through to a grid reorder.
+        int spanX = 1;
+        int spanY = 1;
+        View child = mShortcutsAndWidgets.getChildAt(targetCell[0], targetCell[1]);
+        if (child != null && child.getLayoutParams() instanceof CellLayoutLayoutParams lp) {
+            spanX = Math.max(1, lp.cellHSpan);
+            spanY = Math.max(1, lp.cellVSpan);
+        }
         // Halfway between reorder radius and icon.
-        return (getReorderRadius(targetCell, 1, 1) + iconVisibleRadius) / 2;
+        return (getReorderRadius(targetCell, spanX, spanY) + iconVisibleRadius) / 2;
     }
 
     /**

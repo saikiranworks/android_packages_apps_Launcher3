@@ -299,8 +299,11 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
 
         mBackground = (GradientDrawable) Objects.requireNonNull(
                 ResourcesCompat.getDrawable(getResources(),
-                        R.drawable.round_rect_folder, getContext().getTheme()));
+                        R.drawable.round_rect_folder, getContext().getTheme())).mutate();
         mBackground.setCallback(this);
+        // Make the expanded folder translucent so the blurred wallpaper shows through -- a glass
+        // panel matching the big folder icon, instead of an opaque (near-black) fill.
+        mBackground.setAlpha(0xCC);
         mBoxSelectionHelper = enableWorkspaceSelection()
                 ? new BoxSelectionHelper(mActivityContext, this)
                 : null;
@@ -806,7 +809,12 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
                 if (Flags.enableExpressiveFolderExpansion()) {
                     Trace.beginSection("FolderSpringAnimationOpen");
                 }
-                mFolderIcon.setIconVisible(false);
+                // A big folder cross-fades its content against the tile's big preview instead of
+                // flying small preview items (see FolderAnimationManager), so the tile has to stay
+                // drawn for the whole animation; it is hidden below, once the content is opaque.
+                if (!mFolderIcon.isBigFolder()) {
+                    mFolderIcon.setIconVisible(false);
+                }
                 mFolderIcon.drawLeaveBehindIfExists();
             }
 
@@ -815,6 +823,13 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
                 if (Flags.enableExpressiveFolderExpansion()) {
                     Trace.endSection();
                 }
+                // No-op for normal folders, which were hidden at animation start.
+                mFolderIcon.setIconVisible(false);
+                // The big-folder cross-fade leaves this at 0; reset so any later path that shows the
+                // tile again (drag, a cancelled open) doesn't get an invisible one.
+                mFolderIcon.setBigPreviewAlpha(1f);
+                // The other half of that cross-fade; a cancelled open could strand it below 1.
+                setAlpha(1f);
                 setState(STATE_OPEN);
                 announceAccessibilityChanges();
                 AccessibilityManagerCompat.sendTestProtocolEventToTest(getContext(),
@@ -984,6 +999,11 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
                 }
                 setWindowInsetsAnimationCallback(null);
                 mIsAnimatingClosed = true;
+                // Bring the tile preview back up front so the shrinking content dissolves onto it
+                // rather than being swapped for it in a single frame at closeComplete().
+                if (mFolderIcon != null && mFolderIcon.isBigFolder()) {
+                    mFolderIcon.setIconVisible(true);
+                }
             }
 
             @Override
@@ -1026,9 +1046,14 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
         }
         mActivityContext.getDragController().removeDropTarget(this);
         clearFocus();
+        // Big folders animate these; a cancelled animation can leave them part-faded. The folder
+        // itself matters most: it is reused, so a stranded alpha would open invisible next time.
+        mContent.setAlpha(1f);
+        setAlpha(1f);
         if (mFolderIcon != null) {
             mFolderIcon.setVisibility(View.VISIBLE);
             mFolderIcon.setIconVisible(true);
+            mFolderIcon.setBigPreviewAlpha(1f);
             mFolderIcon.mFolderName.getFloatingViewTextAlpha().setValue(
                     1f);
             if (wasAnimated) {

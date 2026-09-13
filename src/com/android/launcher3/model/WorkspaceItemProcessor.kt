@@ -491,11 +491,17 @@ class WorkspaceItemProcessor(
         c.applyCommonProperties(collection)
         // Do not trim the folder label, as is was set by the user.
         collection.title = c.title
-        collection.spanX = 1
-        collection.spanY = 1
         if (collection is FolderInfo) {
+            // Load a folder's persisted footprint so a big (2x2) folder comes up big immediately
+            // instead of loading 1x1 and popping to 2x2 post-bind. Clamp to the grid so a stale or
+            // out-of-bounds saved span can never make checkItemPlacement drop the folder; if it
+            // ends up too small, updateBigFolderFootprint grows it after bind.
+            collection.spanX = c.spanX.coerceIn(1, (idp.numColumns - collection.cellX).coerceAtLeast(1))
+            collection.spanY = c.spanY.coerceIn(1, (idp.numRows - collection.cellY).coerceAtLeast(1))
             collection.options = c.options
         } else {
+            collection.spanX = 1
+            collection.spanY = 1
             // An app pair may be inside another folder, so it needs to preserve rank information.
             collection.rank = c.rank
         }
@@ -708,6 +714,11 @@ class WorkspaceItemProcessor(
 
             itemInfo.getContents().sortWith(Folder.ITEM_POS_COMPARATOR)
             verifiers.forEach { it.setFolderInfo(itemInfo) }
+            // Size a big (2x2) folder now that all items are placed and its full contents are known.
+            // Runs on the load-time occupancy grid (so it can relocate to a free 2x2 without
+            // overlapping/straddling) and is deterministic, so the folder comes up big directly after
+            // a reboot instead of loading 1x1 and popping to 2x2 post-bind.
+            c.applyBigFolderFootprint(itemInfo)
 
             // Update ranks here to ensure there are no gaps caused by removed folder items.
             // Ranks are the source of truth for folder items, so cellX and cellY can be
