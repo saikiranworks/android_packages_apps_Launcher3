@@ -874,12 +874,13 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         }
         Paint.FontMetrics fm = mFolderName.getPaint().getFontMetrics();
         return (int) Math.ceil(fm.bottom - fm.top) + mFolderName.getPaddingTop()
-                + mFolderName.getPaddingBottom() + getBigFolderLabelGap();
+                + mFolderName.getPaddingBottom() + getBigFolderLabelGap()
+                + Math.round(6 * getResources().getDisplayMetrics().density);
     }
 
     /** Gap between a big folder's preview and the label below it. */
     private int getBigFolderLabelGap() {
-        return Math.round(4 * getResources().getDisplayMetrics().density);
+        return Math.round(8 * getResources().getDisplayMetrics().density);
     }
 
     /**
