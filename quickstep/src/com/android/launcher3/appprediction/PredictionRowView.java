@@ -25,6 +25,7 @@ import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewGroup.MarginLayoutParams;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.LinearLayout;
 
@@ -144,15 +145,7 @@ public class PredictionRowView<T extends Context & ActivityContext>
     public int getExpectedHeight() {
         DeviceProfile deviceProfile = mActivityContext.getDeviceProfile();
         int iconHeight = deviceProfile.getAllAppsProfile().getIconSizePx();
-        int iconPadding = deviceProfile.getAllAppsProfile().getIconDrawablePaddingPx();
-        int textHeight = Utilities.calculateTextHeight(
-                deviceProfile.getAllAppsProfile().getIconTextSizePx());
-        int totalHeight = iconHeight + iconPadding + textHeight + mVerticalPadding * 2;
-        // Prediction row height will be 4dp bigger than the regular apps in A-Z list when two line
-        // is not enabled. Otherwise, the extra height will increase by just the textHeight.
-        int extraHeight = LauncherPrefs.ENABLE_TWOLINE_ALLAPPS_TOGGLE.get(getContext())
-                ? (textHeight + mTopRowExtraHeight) : mTopRowExtraHeight;
-        totalHeight += extraHeight;
+        int totalHeight = iconHeight + mVerticalPadding * 2;
         return getVisibility() == GONE ? 0 : totalHeight + getPaddingTop() + getPaddingBottom();
     }
 

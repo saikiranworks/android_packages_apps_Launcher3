@@ -56,6 +56,7 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.ViewOutlineProvider;
 import android.view.WindowInsets;
 import android.widget.Button;
@@ -359,20 +360,23 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         mSearchUiManager = (SearchUiManager) mSearchContainer;
         mSearchContainer.addOnLayoutChangeListener(mSearchContainerLayoutListener);
 
+        setupSuggestionsPill();
+        moveSearchBarToBottom();
+
         if (isAppLibrary()) {
-            moveSearchBarToBottom();
             setupSearchListChrome();
         }
     }
 
     private void moveSearchBarToBottom() {
-        RelativeLayout.LayoutParams searchLp =
-                (RelativeLayout.LayoutParams) mSearchContainer.getLayoutParams();
+        if (!(mSearchContainer.getLayoutParams() instanceof RelativeLayout.LayoutParams searchLp)) {
+            return;
+        }
         searchLp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
 
         mSearchContainer.addOnLayoutChangeListener(
                 (v, l, t, r, b, oldL, oldT, oldR, oldB) -> {
-                    if (b - t != oldB - oldT) {
+                    if (b - t != oldB - oldT || t != oldT) {
                         mAH.forEach(AdapterHolder::applyPadding);
                     }
                 });
@@ -382,8 +386,11 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         mIndexRail = findViewById(R.id.app_library_index_rail);
         mIndexRail.setup(mSearchRecyclerView, mAH.get(SEARCH).mAppsList);
 
+        // The search box floats over the list, so the rows have to stop where it starts.
+        mSearchRecyclerView.addOnLayoutChangeListener(
+                (v, l, t, r, b, oldL, oldT, oldR, oldB) -> mAH.get(SEARCH).applyPadding());
+
         setupSearchBlur();
-        setupSuggestionsPill();
 
         mSearchScrim = findViewById(R.id.app_library_search_scrim);
         mSearchCancel = findViewById(R.id.app_library_search_cancel);
@@ -485,11 +492,11 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         int margin = getResources().getDimensionPixelSize(R.dimen.app_library_suggestions_margin);
         int gap = getResources().getDimensionPixelSize(R.dimen.app_library_suggestions_gap);
         predictionRow.setBackgroundResource(R.drawable.bg_app_library_suggestions);
-        predictionRow.setPadding(predictionRow.getPaddingLeft(), predictionRow.getPaddingTop(),
-                predictionRow.getPaddingRight(), predictionRow.getPaddingBottom() + gap);
         if (predictionRow.getLayoutParams() instanceof MarginLayoutParams mlp) {
             mlp.leftMargin = margin;
             mlp.rightMargin = margin;
+            mlp.topMargin = gap;
+            mlp.bottomMargin = gap;
         }
         View appsDivider = findViewById(R.id.apps_divider_view);
         if (appsDivider != null) {
@@ -1039,6 +1046,8 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
             layoutBelowSearchContainer(rvContainer, showTabs);
             layoutBelowSearchContainer(getSearchRecyclerView(), /* includeTabsMargin= */ false);
         }
+        alignParentTop(rvContainer, showTabs);
+        alignParentTop(getSearchRecyclerView(), /* includeTabsMargin= */ false);
 
         if (mOneUiPagedView != null
                 && rvContainer.getLayoutParams() instanceof RelativeLayout.LayoutParams rvLp) {
@@ -1090,6 +1099,10 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
             alignParentTop(mHeader, false /* includeTabsMargin */);
         } else {
             layoutBelowSearchContainer(mHeader, false /* includeTabsMargin */);
+        alignParentTop(mHeader, false);
+
+        if (mSearchContainer != null && mSearchContainer.getParent() == this) {
+            mSearchContainer.bringToFront();
         }
         applyOneUiPagePadding();
     }
@@ -1364,6 +1377,8 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         int topMargin = includeTabsMargin
                 ? getContext().getResources().getDimensionPixelSize(
                         R.dimen.all_apps_header_pill_height)
+                        + 2 * getContext().getResources().getDimensionPixelSize(
+                                R.dimen.all_apps_tabs_margin_top)
                 : 0;
         if (v.getLayoutParams() instanceof RelativeLayout.LayoutParams layoutParams) {
             layoutParams.addRule(RelativeLayout.ALIGN_PARENT_TOP);
@@ -1671,6 +1686,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
             updateFastScrollerBottomMargin();
         }
         updateOneUiPageIndicatorLayout();
+
         InsettableFrameLayout.dispatchInsets(this, insets);
     }
 
@@ -2347,12 +2363,35 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                         bottomOffset = mPrivateSpaceBottomExtraSpace;
                     }
                 }
-                if (isSearchBarFloating() || isAppLibrary()) {
-                    bottomOffset += mSearchContainer.getHeight();
+                int underSearchBar = spaceUnderSearchBar(mRecyclerView);
+                bottomOffset += underSearchBar;
+                if (isSearch() && isAppLibrary() && mHeader != null) {
+                    int height = mRecyclerView.getHeight();
+                    mHeader.setSearchListBottomClip(height > 0
+                            ? Math.max(0, height - underSearchBar) : Integer.MAX_VALUE);
                 }
                 mRecyclerView.setPadding(mPadding.left, mPadding.top, mPadding.right,
                         mPadding.bottom + bottomOffset);
             }
+        }
+
+        /**
+         * How much of this list the search box covers: it floats over the bottom of the list, and
+         * the list does not always reach the bottom of the screen, so neither the box's height nor
+         * its margins say where it starts.
+         */
+        private int spaceUnderSearchBar(View list) {
+            if (mSearchContainer == null || list == null
+                    || mSearchContainer.getParent() != ActivityAllAppsContainerView.this) {
+                return 0;
+            }
+            int listBottom = list.getBottom();
+            for (ViewParent parent = list.getParent();
+                    parent instanceof View && parent != ActivityAllAppsContainerView.this;
+                    parent = ((View) parent).getParent()) {
+                listBottom += ((View) parent).getTop();
+            }
+            return Math.max(0, listBottom - mSearchContainer.getTop());
         }
 
         private boolean isWork() {

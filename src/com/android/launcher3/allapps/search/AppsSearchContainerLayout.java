@@ -143,7 +143,8 @@ public class AppsSearchContainerLayout extends ExtendedEditText
         int iconPadding = cellWidth - iconVisibleSize;
 
         int myWidth = rowWidth - iconPadding + getPaddingLeft() + getPaddingRight()
-                - mAppsView.getSearchCancelWidth();
+                - mAppsView.getSearchCancelWidth()
+                - 2 * getResources().getDimensionPixelSize(R.dimen.all_apps_search_side_gap);
         super.onMeasure(makeMeasureSpec(myWidth, EXACTLY), heightMeasureSpec);
     }
 
@@ -309,19 +310,25 @@ public class AppsSearchContainerLayout extends ExtendedEditText
         } else {
             mlp.topMargin = insets.top;
         }
+        mSystemBottomInset = insets.bottom + bottomGap();
+        mlp.topMargin = 0;
+        mlp.bottomMargin = mSystemBottomInset + mImeInset;
         requestLayout();
+    }
+
+    private int bottomGap() {
+        return mAppsView.isAppLibrary() ? 0 : getResources().getDimensionPixelSize(
+                R.dimen.all_apps_search_bar_bottom_padding);
     }
 
     @Override
     public WindowInsets onApplyWindowInsets(WindowInsets insets) {
-        if (mAppsView.isAppLibrary()) {
-            int ime = insets.getInsets(WindowInsets.Type.ime()).bottom;
-            if (ime != mImeInset) {
-                mImeInset = ime;
-                MarginLayoutParams mlp = (MarginLayoutParams) getLayoutParams();
-                mlp.bottomMargin = mSystemBottomInset + mImeInset;
-                requestLayout();
-            }
+        int ime = insets.getInsets(WindowInsets.Type.ime()).bottom;
+        if (ime != mImeInset) {
+            mImeInset = ime;
+            MarginLayoutParams mlp = (MarginLayoutParams) getLayoutParams();
+            mlp.bottomMargin = mSystemBottomInset + mImeInset;
+            requestLayout();
         }
         return super.onApplyWindowInsets(insets);
     }

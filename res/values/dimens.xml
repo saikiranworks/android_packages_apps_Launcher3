@@ -140,6 +140,10 @@
     <dimen name="all_apps_work_profile_tab_footer_top_padding">16dp</dimen>
     <dimen name="all_apps_work_profile_tab_footer_bottom_padding">20dp</dimen>
     <dimen name="all_apps_tabs_button_horizontal_padding">4dp</dimen>
+    <dimen name="all_apps_tabs_button_padding">22dp</dimen>
+    <dimen name="all_apps_tabs_container_padding">4dp</dimen>
+    <dimen name="all_apps_search_side_gap">12dp</dimen>
+    <dimen name="all_apps_tabs_button_min_width">104dp</dimen>
     <dimen name="all_apps_tabs_focus_horizontal_inset">5dp</dimen>
     <dimen name="all_apps_tabs_focus_vertical_inset">6dp</dimen>
     <dimen name="all_apps_tabs_focus_border">3dp</dimen>
@@ -519,7 +523,7 @@
     <dimen name="search_row_icon_size">0dp</dimen>
 
     <!-- App Library search list rows -->
-    <dimen name="all_apps_row_height">64dp</dimen>
+    <dimen name="all_apps_row_height">76dp</dimen>
     <dimen name="all_apps_row_horizontal_padding">24dp</dimen>
     <dimen name="all_apps_row_divider_height">1dp</dimen>
     <dimen name="all_apps_row_section_text_size">15sp</dimen>
@@ -535,7 +539,7 @@
     <dimen name="app_library_search_scrim_overhang">-64dp</dimen>
     <dimen name="app_library_search_corner_radius">28dp</dimen>
     <integer name="app_library_search_blur_radius">20</integer>
-    <dimen name="app_library_suggestions_corner_radius">28dp</dimen>
+    <dimen name="app_library_suggestions_corner_radius">@dimen/rounded_button_radius</dimen>
     <dimen name="app_library_suggestions_margin">16dp</dimen>
     <dimen name="app_library_suggestions_gap">20dp</dimen>
     <dimen name="app_library_top_gap">16dp</dimen>

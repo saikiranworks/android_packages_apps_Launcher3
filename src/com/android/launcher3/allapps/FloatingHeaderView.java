@@ -26,6 +26,7 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewGroup.MarginLayoutParams;
 import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
@@ -52,6 +53,7 @@ public class FloatingHeaderView extends LinearLayout implements
         OnHeightUpdatedListener {
 
     private final Rect mRVClip = new Rect(0, 0, Integer.MAX_VALUE, Integer.MAX_VALUE);
+    private final Rect mSearchRVClip = new Rect(0, 0, Integer.MAX_VALUE, Integer.MAX_VALUE);
     private final Rect mHeaderClip = new Rect(0, 0, Integer.MAX_VALUE, Integer.MAX_VALUE);
     private final ValueAnimator mAnimator = ValueAnimator.ofInt(0, 0);
     private final Point mTempOffset = new Point();
@@ -386,7 +388,20 @@ public class FloatingHeaderView extends LinearLayout implements
             mWorkRV.setClipBounds(mRVClip);
         }
         if (mSearchRV != null) {
-            mSearchRV.setClipBounds(mRVClip);
+            mSearchRVClip.top = mRVClip.top;
+            mSearchRV.setClipBounds(mSearchRVClip);
+        }
+    }
+
+    /** Where the search list has to stop, so its rows do not run under the search box. */
+    void setSearchListBottomClip(int bottom) {
+        if (mSearchRVClip.bottom == bottom) {
+            return;
+        }
+        mSearchRVClip.bottom = bottom;
+        if (mSearchRV != null) {
+            mSearchRVClip.top = mRVClip.top;
+            mSearchRV.setClipBounds(mSearchRVClip);
         }
     }
 
@@ -441,8 +456,14 @@ public class FloatingHeaderView extends LinearLayout implements
 
     /** Calculates the combined height of any floating rows (e.g. predicted apps, app divider). */
     private void updateFloatingRowsHeight() {
-        mFloatingRowsHeight =
-                Arrays.stream(mAllRows).mapToInt(FloatingHeaderRow::getExpectedHeight).sum();
+        mFloatingRowsHeight = Arrays.stream(mAllRows).mapToInt(row -> {
+            int height = row.getExpectedHeight();
+            if (height > 0 && row instanceof View view
+                    && view.getLayoutParams() instanceof MarginLayoutParams mlp) {
+                height += mlp.topMargin + mlp.bottomMargin;
+            }
+            return height;
+        }).sum();
     }
 
     /** Gets the combined height of any floating rows (e.g. predicted apps, app divider). */

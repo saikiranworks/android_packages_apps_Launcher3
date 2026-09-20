@@ -23,10 +23,6 @@
 
     <include layout="@layout/all_apps_bottom_sheet_background" />
 
-    <!-- Only the search list sits in the blur target. The target records everything inside it
-         into an offscreen render node on every frame, and the categories have nothing passing
-         behind the search box to blur, so keeping them out of it saves a full screen pass per
-         frame on the page and through the animation that opens it. -->
     <eightbitlab.com.blurview.BlurTarget
         android:id="@+id/app_library_blur_target"
         android:layout_width="match_parent"
@@ -36,11 +32,11 @@
         <include
             layout="@layout/search_results_rv_layout"
             android:visibility="gone" />
-    </eightbitlab.com.blurview.BlurTarget>
 
-    <include
-        layout="@layout/all_apps_rv_layout"
-        android:visibility="gone" />
+        <include
+            layout="@layout/all_apps_rv_layout"
+            android:visibility="gone" />
+    </eightbitlab.com.blurview.BlurTarget>
 
     <com.android.launcher3.allapps.FloatingHeaderView
         android:id="@+id/all_apps_header"

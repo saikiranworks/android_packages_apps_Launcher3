@@ -50,6 +50,7 @@ import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.util.Themes;
+import com.android.launcher3.dragndrop.DragController;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.BaseDragLayer;
 
@@ -155,6 +156,18 @@ public class CaddyCategoryView extends AbstractFloatingView {
                 icon.reset();
                 icon.applyFromWorkspaceItem((WorkspaceItemInfo) item);
                 icon.setOnClickListener(mActivityContext.getItemOnClickListener());
+                View.OnLongClickListener longClick =
+                        mActivityContext.getAllAppsItemLongClickListener();
+                icon.setOnLongClickListener(v -> {
+                    boolean handled = longClick != null && longClick.onLongClick(v);
+                    DragController dragController = mActivityContext.getDragController();
+                    if (dragController != null && dragController.isDragging()) {
+                        close(false);
+                    }
+                    return handled;
+                });
+                icon.setCustomActionsListener(
+                        mActivityContext.getAllAppsItemCustomActionsListener());
                 GridLayout.LayoutParams glp = new GridLayout.LayoutParams();
                 glp.width = 0;
                 glp.height = cellH;
@@ -315,7 +328,9 @@ public class CaddyCategoryView extends AbstractFloatingView {
             return;
         }
         mIsOpen = false;
-        if (!animate || mFromX == null) {
+        DragController dragController = mActivityContext.getDragController();
+        if (!animate || mFromX == null
+                || (dragController != null && dragController.isDragging())) {
             closeComplete();
             return;
         }

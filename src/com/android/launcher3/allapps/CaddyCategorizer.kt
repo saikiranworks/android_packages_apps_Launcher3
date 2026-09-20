@@ -31,7 +31,12 @@ object CaddyCategorizer {
      *   System Apps, Google Apps, then the Flowerpot categories (alphabetical, with "Other" last).
      */
     @JvmStatic
-    fun categorize(apps: List<AppInfo>, context: Context): Map<String, List<AppInfo>> {
+    @JvmOverloads
+    fun categorize(
+        apps: List<AppInfo>,
+        context: Context,
+        onUsageRefreshed: Runnable? = null,
+    ): Map<String, List<AppInfo>> {
         val systemApps = mutableListOf<AppInfo>()
         val googleApps = mutableListOf<AppInfo>()
         val otherApps = mutableListOf<AppInfo>()
@@ -50,10 +55,18 @@ object CaddyCategorizer {
         // Use flowerpot to categorize the remaining (non-system, non-Google) apps.
         val categorizedApps = Flowerpot.Manager.getInstance(context).categorizeApps(otherApps)
 
+        val usage = CaddyUsage.scores(context, onUsageRefreshed)
+        val byUsage = { list: List<AppInfo> ->
+            list.sortedWith(
+                compareByDescending<AppInfo> { usage[it.targetPackage] ?: 0L }
+                    .thenBy { it.title?.toString()?.lowercase() ?: "" }
+            )
+        }
+
         val finalCategorizedApps = LinkedHashMap<String, List<AppInfo>>()
-        if (systemApps.isNotEmpty()) finalCategorizedApps["System Apps"] = systemApps
-        if (googleApps.isNotEmpty()) finalCategorizedApps["Google Apps"] = googleApps
-        finalCategorizedApps.putAll(categorizedApps)
+        if (systemApps.isNotEmpty()) finalCategorizedApps["System Apps"] = byUsage(systemApps)
+        if (googleApps.isNotEmpty()) finalCategorizedApps["Google Apps"] = byUsage(googleApps)
+        categorizedApps.forEach { (name, list) -> finalCategorizedApps[name] = byUsage(list) }
         return finalCategorizedApps
     }
 }

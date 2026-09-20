@@ -32,14 +32,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:clipToPadding="false"
-        android:layout_below="@id/search_container_all_apps"
+        android:layout_alignParentTop="true"
         android:paddingTop="@dimen/all_apps_header_top_padding"
         android:paddingBottom="@dimen/all_apps_header_bottom_padding"
         android:orientation="vertical" >
 
-        <include layout="@layout/floating_header_content" />
-
         <include layout="@layout/all_apps_personal_work_tabs" />
+
+        <include layout="@layout/floating_header_content" />
 
     </com.android.launcher3.allapps.FloatingHeaderView>
 

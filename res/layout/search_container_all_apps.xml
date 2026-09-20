@@ -31,6 +31,8 @@
     android:maxLines="1"
     android:paddingVertical="12dp"
     android:paddingStart="20dp"
+    android:paddingVertical="6dp"
+    android:paddingStart="12dp"
     android:paddingEnd="12dp"
     android:layout_marginStart="12dp"
     android:layout_marginEnd="12dp"
@@ -41,4 +43,4 @@
     android:singleLine="true"
     android:textColor="@color/materialColorOnSurface"
     android:textColorHint="?attr/allAppsSearchTextColor"
-    android:textSize="20sp" />
+    android:textSize="16sp" />

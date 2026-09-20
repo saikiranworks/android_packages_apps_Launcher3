@@ -18,20 +18,23 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:launcher="http://schemas.android.com/apk/res-auto"
     android:id="@+id/tabs"
-    android:layout_width="match_parent"
+    android:layout_width="wrap_content"
     android:layout_height="@dimen/all_apps_header_pill_height"
     android:layout_gravity="center_horizontal"
     android:layout_marginTop="@dimen/all_apps_tabs_margin_top"
+    android:layout_marginBottom="@dimen/all_apps_tabs_margin_top"
     android:orientation="horizontal"
+    android:background="@drawable/bg_all_apps_tabs_container"
+    android:padding="@dimen/all_apps_tabs_container_padding"
     style="@style/TextHeadline"
-    launcher:alignOnIcon="true">
+    launcher:alignOnIcon="false">
 
     <Button
         android:id="@+id/tab_personal"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:layout_marginEnd="@dimen/all_apps_tabs_button_horizontal_padding"
-        android:layout_weight="1"
+        android:minWidth="@dimen/all_apps_tabs_button_min_width"
+        android:paddingHorizontal="@dimen/all_apps_tabs_button_padding"
         android:background="@drawable/all_apps_tabs_background"
         android:text="@string/all_apps_personal_tab"
         android:textAllCaps="false"
@@ -42,10 +45,10 @@
 
     <Button
         android:id="@+id/tab_work"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:layout_marginStart="@dimen/all_apps_tabs_button_horizontal_padding"
-        android:layout_weight="1"
+        android:minWidth="@dimen/all_apps_tabs_button_min_width"
+        android:paddingHorizontal="@dimen/all_apps_tabs_button_padding"
         android:background="@drawable/all_apps_tabs_background"
         android:text="@string/all_apps_work_tab"
         android:textAllCaps="false"
