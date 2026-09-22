@@ -1947,6 +1947,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         return (mHasWorkApps && !AppDrawerStyle.isVerticalPaged(mAppDrawerStyle))
                 || showCategoriesTab();
         return mHasWorkApps || !isAppLibrary();
+        return mHasWorkApps || (!isAppLibrary() && isCaddyEnabled());
     }
 
     /**
@@ -1954,7 +1955,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
      * profile wins: Personal|Work is a platform affordance, the category tab is a preference.
      */
     private boolean showCategoriesTab() {
-        return !mHasWorkApps;
+        return !mHasWorkApps && !isAppLibrary() && isCaddyEnabled();
     }
 
     private boolean isCaddyEnabled() {

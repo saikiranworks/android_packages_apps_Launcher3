@@ -21,7 +21,6 @@ import static androidx.preference.PreferenceFragmentCompat.ARG_PREFERENCE_ROOT;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Process;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -118,6 +117,8 @@ public class SettingsAppDrawer extends CollapsingToolbarBaseActivity
                 LauncherPrefs.APP_DRAWER_CUSTOM_COLOR_ENABLED.getSharedPrefKey().equals(key) ||
                 LauncherPrefs.APP_DRAWER_CUSTOM_COLOR_LIGHT.getSharedPrefKey().equals(key) ||
                 LauncherPrefs.APP_DRAWER_CUSTOM_COLOR_DARK.getSharedPrefKey().equals(key)) {
+                LauncherPrefs.SEARCH_BAR_BOTTOM.getSharedPrefKey().equals(key) ||
+                LauncherPrefs.ALL_APPS_DARK_TEXT.getSharedPrefKey().equals(key)) {
             LauncherAppState.INSTANCE.executeIfCreated(app -> app.setNeedsRestart());
         }
     }
@@ -289,9 +290,12 @@ public class SettingsAppDrawer extends CollapsingToolbarBaseActivity
             }
             applyAppLibraryState(layout, toggle.isChecked());
             toggle.setOnPreferenceChangeListener((preference, value) -> {
-                applyAppLibraryState(layout, (Boolean) value);
-                getPreferenceManager().getSharedPreferences().edit().commit();
-                Process.killProcess(Process.myPid());
+                boolean enabled = (Boolean) value;
+                applyAppLibraryState(layout, enabled);
+                getPreferenceManager().getSharedPreferences().edit()
+                        .putBoolean(LauncherPrefs.APP_LIBRARY.getSharedPrefKey(), enabled)
+                        .commit();
+                LauncherAppState.INSTANCE.executeIfCreated(app -> app.setNeedsRestart());
                 return true;
             });
         }
