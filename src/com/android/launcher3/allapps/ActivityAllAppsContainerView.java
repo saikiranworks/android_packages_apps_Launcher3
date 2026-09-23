@@ -413,7 +413,8 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
         if (isAppLibrary()) {
             mSearchRecyclerView.addItemDecoration(new AppLibraryRowDecoration(
-                    getContext(), mAH.get(SEARCH).mAppsList, this::isSearchTransitionRunning));
+                    getLayoutInflater().getContext(), mAH.get(SEARCH).mAppsList,
+                    this::isSearchTransitionRunning));
         }
         mAH.get(SEARCH).setup(mSearchRecyclerView,
                 /* Filter out A-Z apps */ itemInfo -> false);
