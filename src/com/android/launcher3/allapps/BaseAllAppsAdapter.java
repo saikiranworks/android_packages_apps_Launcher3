@@ -283,6 +283,14 @@ public abstract class BaseAllAppsAdapter
         mLayoutInflater = inflater;
 
         mTextColor = AppDrawerStyle.getContentColor(activityContext.asContext());
+        boolean forceDarkText = LauncherPrefs.ALL_APPS_DARK_TEXT.get(activityContext.asContext());
+        if (forceDarkText) {
+            mTextColor = activityContext.asContext().getResources().getColor(R.color.all_apps_label_color_dark_forced, null);
+        } else {
+            // The inflater's context carries the App Library's always-dark theme.
+            mTextColor = Themes.getAttrColor(inflater.getContext(),
+                    android.R.attr.textColorPrimary);
+        }
 
         mOnIconClickListener = mActivityContext.getItemOnClickListener();
         mOnIconLongClickListener = mActivityContext.getAllAppsItemLongClickListener();

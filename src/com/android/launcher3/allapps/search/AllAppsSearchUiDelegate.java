@@ -16,6 +16,7 @@
 
 package com.android.launcher3.allapps.search;
 
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 
@@ -23,6 +24,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.launcher3.R;
 import com.android.launcher3.allapps.ActivityAllAppsContainerView;
+import com.android.launcher3.applibrary.AppLibraryTheme;
 import com.android.launcher3.allapps.BaseAllAppsAdapter.AdapterItem;
 import com.android.launcher3.views.ActivityContext;
 
@@ -67,6 +69,14 @@ public class AllAppsSearchUiDelegate {
     /** The layout inflater for All Apps and search UI. */
     public LayoutInflater getLayoutInflater() {
         return LayoutInflater.from(mAppsView.getContext());
+        Context context = mAppsView.getContext();
+        if (mAppsView.isAppLibrary()) {
+            if (mLibraryContext == null) {
+                mLibraryContext = AppLibraryTheme.wrap(context);
+            }
+            return LayoutInflater.from(context).cloneInContext(mLibraryContext);
+        }
+        return LayoutInflater.from(context);
     }
 
     /** Inflate the search bar for All Apps. */
