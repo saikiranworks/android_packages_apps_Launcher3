@@ -124,6 +124,11 @@ class Flowerpot(
 
         fun getAllPots() = pots.values
 
+        /** The first category whose rules take [packageName], as [categorizeApps] would. */
+        fun categoryOf(packageName: String): String? =
+            pots.values.firstOrNull { it.ensureLoaded(); it.apps.matches(packageName) }
+                ?.displayName
+
         fun categorizeApps(appList: List<AppInfo?>?): Map<String, List<AppInfo>> {
             val categorizedApps = mutableMapOf<String, MutableList<AppInfo>>()
             val categorizedAppKeys = mutableSetOf<String>()

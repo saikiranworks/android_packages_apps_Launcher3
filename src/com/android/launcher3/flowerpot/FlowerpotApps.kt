@@ -49,6 +49,8 @@ class FlowerpotApps(private val context: Context, private val pot: Flowerpot) {
         }
     }
 
+    fun matches(packageName: String): Boolean = matchesRules(packageName)
+
     private fun matchesRules(packageName: String): Boolean =
         packageName in intentMatches ||
             pot.rules.contains(Rules.Package(packageName)) ||
