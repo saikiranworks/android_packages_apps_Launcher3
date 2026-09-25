@@ -65,8 +65,6 @@ import com.android.launcher3.graphics.SysUiScrim;
 import com.android.launcher3.states.EditModeState;
 import com.android.launcher3.states.SpringLoadedState;
 import com.android.launcher3.states.StateAnimationConfig;
-import com.android.launcher3.util.MultiPropertyFactory;
-import com.android.launcher3.util.MultiPropertyFactory.MultiProperty;
 import com.android.launcher3.util.DynamicResource;
 import com.android.systemui.plugins.ResourceProvider;
 
@@ -151,17 +149,6 @@ public class WorkspaceStateTransitionAnimation {
                     scaleInterpolator);
             propertySetter.setFloat(hotseat, HOTSEAT_SCALE_PROPERTY, hotseatScale,
                     hotseatScaleInterpolator);
-        }
-
-        propertySetter.setFloat(
-                hotseat.getIconsTranslationX(Hotseat.ICONS_TRANSLATION_X_STATE),
-                MultiPropertyFactory.MULTI_PROPERTY_VALUE,
-                hotseatScaleAndTranslation.translationX,
-                scaleInterpolator);
-        MultiProperty qsbTranslationX = hotseat.getQsbTranslationX();
-        if (qsbTranslationX != null) {
-            propertySetter.setFloat(qsbTranslationX, MultiPropertyFactory.MULTI_PROPERTY_VALUE,
-                    hotseatScaleAndTranslation.translationX, scaleInterpolator);
         }
 
         Interpolator workspaceFadeInterpolator = config.getInterpolator(ANIM_WORKSPACE_FADE,
