@@ -846,8 +846,18 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         if (mInfo.forceBigPreview) {
             return true;
         }
-        return mInfo.container == LauncherSettings.Favorites.CONTAINER_DESKTOP
-                && (mInfo.isBigFolder() || mInfo.qualifiesAsBigFolder());
+        if (mInfo.container != LauncherSettings.Favorites.CONTAINER_DESKTOP) {
+            return false;
+        }
+        if (mInfo.isBigFolder()) {
+            return true;
+        }
+        // A folder that had no room to grow keeps its 1x1 cell, so the big preview would spill
+        // over its neighbours and the dock.
+        return mInfo.qualifiesAsBigFolder()
+                && !(getLayoutParams() instanceof CellLayoutLayoutParams lp
+                        && (lp.cellHSpan < FolderInfo.BIG_FOLDER_SPAN
+                                || lp.cellVSpan < FolderInfo.BIG_FOLDER_SPAN));
     }
 
     /** Folder contents in rank order, used to pick the big folder's large icons vs. cluster. */
@@ -955,8 +965,11 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         int cellX = Math.max(0, Math.min(lp.getCellX(), cellLayout.getCountX() - span));
         int cellY = Math.max(0, Math.min(lp.getCellY(), cellLayout.getCountY() - span));
         if (!cellLayout.isRegionVacant(cellX, cellY, span, span)) {
-            int[] vacant = new int[2];
-            if (cellLayout.findCellForSpan(vacant, span, span)) {
+            int[] center = new int[2];
+            cellLayout.regionToCenterPoint(lp.getCellX(), lp.getCellY(), 1, 1, center);
+            int[] vacant = cellLayout.findNearestVacantArea(center[0], center[1], span, span,
+                    span, span, null, null);
+            if (vacant != null && vacant[0] >= 0 && vacant[1] >= 0) {
                 cellX = vacant[0];
                 cellY = vacant[1];
             } else {
