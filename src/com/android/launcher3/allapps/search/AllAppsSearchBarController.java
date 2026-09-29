@@ -90,6 +90,11 @@ public class AllAppsSearchBarController
         }
     }
 
+    private boolean searchesEmptyQuery() {
+        return LauncherPrefs.isAppLibrary(mInput.getContext())
+                || mSearchAlgorithm.hasEmptyQueryResults();
+    }
+
     @Override
     public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
         // Do nothing

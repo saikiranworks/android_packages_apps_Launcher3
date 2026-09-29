@@ -368,6 +368,10 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         }
     }
 
+    public boolean isSearchBarAtTop() {
+        return !LauncherPrefs.SEARCH_BAR_BOTTOM.get(mActivityContext.asContext());
+    }
+
     private void moveSearchBarToBottom() {
         if (!(mSearchContainer.getLayoutParams() instanceof RelativeLayout.LayoutParams searchLp)) {
             return;

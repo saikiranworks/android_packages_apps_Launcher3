@@ -119,6 +119,7 @@ import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
+import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
@@ -201,6 +202,7 @@ import com.android.launcher3.popup.PopupController;
 import com.android.launcher3.popup.SystemShortcut;
 import com.android.launcher3.popup.WorkspaceLongPressOptions;
 import com.android.launcher3.quickspace.QuickSpaceView;
+import com.android.launcher3.search.universal.SpotlightView;
 import com.android.launcher3.statemanager.StateManager;
 import com.android.launcher3.statemanager.StateManager.StateHandler;
 import com.android.launcher3.statemanager.StatefulActivity;
@@ -420,6 +422,8 @@ public class Launcher extends StatefulActivity<LauncherState>
         mStartupLatencyLogger.logStart(LAUNCHER_LATENCY_STARTUP_ACTIVITY_ON_CREATE);
 
         super.onCreate(savedInstanceState);
+        // A Spotlight that went down with the old process must not keep the status bar hidden.
+        SpotlightView.setTakingIslandsPlace(this, false);
         mWallpaperThemeManager = new WallpaperThemeManager(this);
 
         LauncherAppState app = LauncherAppState.getInstance(this);
@@ -1528,6 +1532,75 @@ public class Launcher extends StatefulActivity<LauncherState>
      */
     public void toggleAllApps(boolean focusSearch) {
         toggleAllApps(/* alreadyOnHome= */ true, focusSearch);
+    }
+
+    /**
+     * Opens universal search from the home screen's Search pill as iOS does. With the Dynamic
+     * Island on, the field drops out of the island at the top; without it, the field grows out of
+     * the pill in place, above the dock.
+     */
+    public void openSearchFromPill(View pill) {
+        boolean island = Settings.System.getInt(getContentResolver(),
+                "status_bar_show_dynamic_island", 0) != 0;
+        RectF from = new RectF();
+        if (island) {
+            spotlightAnchor(from);
+        } else {
+            int[] location = new int[2];
+            pill.getLocationInWindow(location);
+            from.set(location[0], location[1], location[0] + pill.getWidth(),
+                    location[1] + pill.getHeight());
+        }
+
+        AbstractFloatingView.closeAllOpenViews(this);
+        SpotlightView.show(this, from, island);
+    }
+
+    /**
+     * Where Spotlight grows out of and settles back into: the Dynamic Island while it shows
+     * something, otherwise the camera itself. Returns whether the island is showing.
+     */
+    public boolean spotlightAnchor(RectF out) {
+        Rect island = Rect.unflattenFromString(String.valueOf(Settings.Secure.getString(
+                getContentResolver(), "penguin_island_bounds")));
+        if (island != null && !island.isEmpty()) {
+            out.set(island);
+            return true;
+        }
+        islandBounds(out);
+        float radius = out.height() / 2f;
+        out.set(out.centerX() - radius, out.top, out.centerX() + radius, out.bottom);
+        return false;
+    }
+
+    /** Where the Dynamic Island rests: a pill hugging the camera at the top centre. */
+    public void islandBounds(RectF out) {
+        float density = getResources().getDisplayMetrics().density;
+        float height = 37 * density;
+        float centerX = mDragLayer.getWidth() / 2f;
+        float top = 11 * density;
+        WindowInsets insets = mDragLayer.getRootWindowInsets();
+        DisplayCutout cutout = insets != null ? insets.getDisplayCutout() : null;
+        if (cutout != null) {
+            // The lens itself: the cutout's bounding rect can span the whole status bar.
+            RectF camera = new RectF();
+            Path path = cutout.getCutoutPath();
+            if (path != null) {
+                path.computeBounds(camera, true);
+            }
+            if (camera.isEmpty() && !cutout.getBoundingRectTop().isEmpty()) {
+                camera.set(cutout.getBoundingRectTop());
+            }
+            if (!camera.isEmpty()) {
+                float pad = 3 * density;
+                height = camera.height() + 2 * pad;
+                centerX = camera.centerX();
+                top = camera.top - pad;
+            }
+        }
+        // iOS's idle island is about three and a half times as wide as it is tall.
+        float width = height * 3.4f;
+        out.set(centerX - width / 2f, top, centerX + width / 2f, top + height);
     }
 
     private void toggleAllApps(boolean alreadyOnHome, boolean focusSearch) {

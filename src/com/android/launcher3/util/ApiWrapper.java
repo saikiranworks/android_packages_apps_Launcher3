@@ -33,6 +33,7 @@ import android.os.UserHandle;
 import android.view.DragAndDropPermissions;
 import android.view.DragEvent;
 import android.view.SurfaceControlViewHost;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -182,6 +183,15 @@ public class ApiWrapper {
     /** Captures a snapshot of the host content as a bitmap */
     public Bitmap captureSnapshot(SurfaceControlViewHost host, int width, int height) {
         return BitmapRenderer.createHardwareBitmap(width, height, host.getView()::draw);
+    }
+
+    /**
+     * Captures what's on screen under {@code root}'s window, wallpaper included, scaled by
+     * {@code scale}, or returns null where the platform won't allow it. Slow: call it off the
+     * main thread.
+     */
+    public @Nullable Bitmap captureHomeWithWallpaper(View root, float scale) {
+        return null;
     }
 
     /** Returns permissions obtained from the specified drag event. */

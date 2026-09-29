@@ -33,7 +33,10 @@ import android.os.IBinder
 import android.os.UserHandle
 import android.view.DragAndDropPermissions
 import android.view.DragEvent
+import android.view.SurfaceControl
 import android.view.SurfaceControlViewHost
+import android.view.View
+import android.view.WindowManagerGlobal
 import android.widget.Toast
 import android.window.RemoteTransition
 import android.window.ScreenCapture.ScreenCaptureParams
@@ -183,6 +186,35 @@ open class SystemApiWrapper @Inject constructor(@ApplicationContext context: Con
             )
             .asBitmap()
             .copy(Bitmap.Config.ARGB_8888, true)
+
+    override fun captureHomeWithWallpaper(root: View, scale: Float): Bitmap? {
+        // The wallpaper lives in its own window, and live wallpapers only exist on screen, so
+        // mirror both surfaces and capture them together.
+        val rootSurface = root.viewRootImpl?.surfaceControl ?: return null
+        val wallpaper =
+            WindowManagerGlobal.getInstance().mirrorWallpaperSurface(root.display.displayId)
+                ?: return null
+        val home = SurfaceControl.mirrorSurface(rootSurface)
+        val parent = SurfaceControl.Builder().setName("Spotlight backdrop").build()
+        return try {
+            SurfaceControl.Transaction()
+                .reparent(wallpaper, parent)
+                .setLayer(wallpaper, -1)
+                .reparent(home, parent)
+                .setLayer(home, 0)
+                .apply(true)
+            ScreenCaptureInternal.captureLayers(
+                    parent,
+                    Rect(0, 0, root.width, root.height),
+                    scale,
+                )
+                ?.asBitmap()
+        } finally {
+            parent.release()
+            home.release()
+            wallpaper.release()
+        }
+    }
 
     override fun requestDragAndDropPermissions(event: DragEvent): DragAndDropPermissions? =
         DragAndDropPermissions.obtain(event)
