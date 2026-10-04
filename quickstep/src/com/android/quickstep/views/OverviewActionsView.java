@@ -21,7 +21,10 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.database.ContentObserver;
 import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
+import android.provider.Settings;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -37,6 +40,7 @@ import androidx.annotation.Nullable;
 
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.Insettable;
+import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
@@ -144,11 +148,13 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
     private final AnimatedFloat[] mAlphaProperties = new AnimatedFloat[NUM_ALPHAS];
 
     /** Holds MultiValueAlpha values for all actions bars */
-    private final MultiValueAlpha[] mMultiValueAlphas = new MultiValueAlpha[2];
+    private final MultiValueAlpha[] mMultiValueAlphas = new MultiValueAlpha[3];
     /** Index used for single-task actions in the mMultiValueAlphas array */
     private static final int ACTIONS_ALPHAS = 0;
     /** Index used for grouped-task actions in the mMultiValueAlphas array */
     private static final int GROUP_ACTIONS_ALPHAS = 1;
+    /** Index used for the frequently used apps row in the mMultiValueAlphas array */
+    private static final int FREQUENT_APPS_ALPHAS = 2;
 
     /** Container for the action buttons below a focused, non-split Overview tile. */
     protected LinearLayout mActionButtons;
@@ -174,6 +180,14 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
     @Nullable
     protected DeviceProfile mDp;
     private final Rect mTaskSize = new Rect();
+    private FrequentAppsView mFrequentApps;
+    // The rows it adds change the task layout, so the launcher has to restart to pick it up
+    private final ContentObserver mFrequentAppsObserver = new ContentObserver(null) {
+        @Override
+        public void onChange(boolean selfChange) {
+            LauncherAppState.INSTANCE.executeIfCreated(app -> app.setNeedsRestart());
+        }
+    };
     private boolean mIsGroupedTask = false;
     private boolean mCanSaveAppPair = false;
 
@@ -213,6 +227,9 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
         super.onAttachedToWindow();
         if (!mPrefsRegistered) {
             mPrefs.registerOnSharedPreferenceChangeListener(this);
+            getContext().getContentResolver().registerContentObserver(
+                    Settings.Secure.getUriFor(FrequentAppsView.SETTING), false,
+                    mFrequentAppsObserver);
             mPrefsRegistered = true;
         }
     }
@@ -224,6 +241,7 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
         clearChildClickListeners();
         if (mPrefsRegistered) {
             mPrefs.unregisterOnSharedPreferenceChangeListener(this);
+            getContext().getContentResolver().unregisterContentObserver(mFrequentAppsObserver);
             mPrefsRegistered = false;
         }
         super.onDetachedFromWindow();
@@ -246,11 +264,13 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
         // Currently, the only grouped task action is "save app pairs".
         mActionButtons = findViewById(R.id.action_buttons);
         mSaveAppPairButton = findViewById(R.id.action_save_app_pair);
+        mFrequentApps = findViewById(R.id.frequent_apps);
         TypefaceUtils.setTypeface(mSaveAppPairButton, FontFamily.GSF_LABEL_LARGE);
         // Initialize a list to hold alphas for mActionButtons and any group action buttons.
         mMultiValueAlphas[ACTIONS_ALPHAS] = new MultiValueAlpha(mActionButtons, NUM_ALPHAS);
         mMultiValueAlphas[GROUP_ACTIONS_ALPHAS] =
                 new MultiValueAlpha(mSaveAppPairButton, NUM_ALPHAS);
+        mMultiValueAlphas[FREQUENT_APPS_ALPHAS] = new MultiValueAlpha(mFrequentApps, NUM_ALPHAS);
         Arrays.stream(mMultiValueAlphas).forEach(a -> a.setUpdateVisibility(true));
         // To control alpha simultaneously on mActionButtons and any group action buttons, we set up
         // an AnimatedFloat for each alpha property.
@@ -464,6 +484,10 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
         Log.d(TAG, "updateActionButtonsVisibility() called: showSingleTaskActions = ["
                 + showSingleTaskActions + "], showGroupActions = [" + showGroupActions + "]");
         getActionsAlphas().get(INDEX_GROUPED_ALPHA).setValue(showSingleTaskActions ? 1 : 0);
+        boolean showFrequentApps = FrequentAppsView.isEnabled(getContext())
+                && !mDp.getDeviceProperties().isLargeScreen();
+        mMultiValueAlphas[FREQUENT_APPS_ALPHAS].get(INDEX_GROUPED_ALPHA)
+                .setValue(showFrequentApps ? 1 : 0);
         getGroupActionsAlphas().get(INDEX_GROUPED_ALPHA).setValue(showGroupActions ? 1 : 0);
     }
 
@@ -546,6 +570,19 @@ public class OverviewActionsView<T extends OverlayUICallbacks> extends FrameLayo
         if (mLockPillContainer != null) {
             updateActionBarPosition(mLockPillContainer);
         }
+        updateFrequentAppsPosition();
+    }
+
+    /** Centres the frequently used apps in the space reserved for them below the actions. */
+    private void updateFrequentAppsPosition() {
+        if (mDp == null || mFrequentApps == null) {
+            return;
+        }
+        LayoutParams lp = (LayoutParams) mFrequentApps.getLayoutParams();
+        int iconSize = getResources().getDimensionPixelSize(R.dimen.frequent_apps_icon_size);
+        int bottomMargin = mDp.getOverviewActionsClaimedSpaceBelow() + mDp.memInfoHeight
+                + Math.max(0, mDp.frequentAppsHeight - iconSize) / 2;
+        lp.setMargins(lp.leftMargin, lp.topMargin, lp.rightMargin, bottomMargin);
     }
 
     /** Positions actions buttons according to device settings and insets. */
