@@ -21,6 +21,50 @@
 
     <PreferenceCategory
         android:key="recents_category_general"
+        android:key="task_changer_layout_category"
+        android:title="@string/task_changer_layout_title">
+
+        <com.android.launcher3.settings.preferences.TaskChangerLayoutPreference
+            android:key="pref_recents_layout"
+            android:defaultValue="carousel" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="task_changer_details_category"
+        android:title="@string/task_changer_details_title">
+
+        <SwitchPreferenceCompat
+            android:key="pref_recents_mini"
+            android:title="@string/task_changer_mini_title"
+            android:summary="@string/task_changer_mini_summary"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="pref_recents_center_running"
+            android:title="@string/task_changer_center_title"
+            android:summary="@string/task_changer_center_summary"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="pref_recents_app_label"
+            android:title="@string/task_changer_label_title"
+            android:summary="@string/task_changer_label_summary"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="pref_recents_circular"
+            android:title="@string/task_changer_circular_title"
+            android:summary="@string/task_changer_circular_summary"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="pref_recents_search"
+            android:title="@string/task_changer_search_title"
+            android:summary="@string/task_changer_search_summary"
+            android:defaultValue="false" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:title="@string/general_category_title">
 
         <SwitchPreferenceCompat

@@ -18,20 +18,25 @@ package com.android.quickstep.views;
 import static android.app.ActivityTaskManager.INVALID_TASK_ID;
 
 import static com.android.launcher3.LauncherState.CLEAR_ALL_BUTTON;
+import static com.android.launcher3.LauncherState.BACKGROUND_APP;
 import static com.android.launcher3.LauncherState.OVERVIEW;
 import static com.android.launcher3.LauncherState.OVERVIEW_MODAL_TASK;
 import static com.android.launcher3.LauncherState.OVERVIEW_SPLIT_SELECT;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 
+import android.animation.AnimatorSet;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.ViewGroup;
+import android.view.View;
 
 import androidx.annotation.Nullable;
 
+import com.android.launcher3.LauncherPrefs;
+import com.android.launcher3.R;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.desktop.DesktopRecentsTransitionController;
@@ -45,6 +50,7 @@ import com.android.launcher3.util.PendingSplitSelectInfo;
 import com.android.launcher3.util.SplitConfigurationOptions;
 import com.android.launcher3.util.SplitConfigurationOptions.SplitSelectSource;
 import com.android.quickstep.GestureState;
+import com.android.quickstep.RemoteTargetGluer.RemoteTargetHandle;
 import com.android.quickstep.SystemUiProxy;
 import com.android.quickstep.split.SplitSelectStateController;
 import com.android.quickstep.util.SurfaceTransactionApplier;
@@ -143,6 +149,16 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
     @Override
     public void onStateTransitionStart(LauncherState toState) {
         setOverviewStateEnabled(toState.isRecentsViewVisible);
+        // The task changer stands in for the carousel from the moment the overview opens
+        TaskChangerView taskChanger = getTaskChanger();
+        if (taskChanger != null) {
+            if (toState == OVERVIEW || toState == BACKGROUND_APP) {
+                taskChanger.show(this, false /* settled */);
+            } else {
+                taskChanger.leave();
+            }
+        }
+        if (!toState.isRecentsViewVisible) resetTilt();
 
         if (toState.displayOverviewTasksAsGrid(mContainer.getDeviceProfile())) {
             setOverviewGridEnabled(true);
@@ -188,6 +204,42 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
         if (finalState.isRecentsViewVisible && finalState != OVERVIEW_MODAL_TASK) {
             setTaskBorderEnabled(true);
         }
+
+        if (finalState != OVERVIEW && finalState != BACKGROUND_APP) {
+            TaskChangerView taskChanger = getTaskChanger();
+            if (taskChanger != null) taskChanger.hide();
+        }
+        if (finalState == OVERVIEW) {
+            if (!LauncherPrefs.RECENTS_CENTER_RUNNING.get(mContainer)) {
+                // Put the app used before this one in the middle instead
+                TaskView running = getRunningTaskView();
+                int index = running == null ? -1 : indexOfChild(running);
+                if (index >= 0 && getNextPage() == index && index + 1 < getChildCount()) {
+                    snapToPage(index + 1);
+                }
+            }
+            updateCurveProperties();
+            TaskChangerView taskChanger = getTaskChanger();
+            if (taskChanger != null) taskChanger.show(this, true /* settled */);
+        }
+    }
+
+    @Override
+    public void onPrepareGestureEndAnimation(AnimatorSet animatorSet,
+            GestureState.GestureEndTarget endTarget, RemoteTargetHandle[] remoteTargetHandles,
+            boolean isHandlingAtomicEvent) {
+        super.onPrepareGestureEndAnimation(animatorSet, endTarget, remoteTargetHandles,
+                isHandlingAtomicEvent);
+        // A swipe up settling into the overview shows the task changer as it lets go
+        if (endTarget == GestureState.GestureEndTarget.RECENTS) {
+            TaskChangerView taskChanger = getTaskChanger();
+            if (taskChanger != null) taskChanger.show(this, false /* settled */);
+        }
+    }
+
+    @Nullable
+    private TaskChangerView getTaskChanger() {
+        return getParent() instanceof View parent ? parent.findViewById(R.id.task_changer) : null;
     }
 
     @Override
@@ -256,6 +308,8 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
     @Override
     public void onGestureAnimationStart(GroupedTaskInfo groupedTaskInfo) {
         super.onGestureAnimationStart(groupedTaskInfo);
+        TaskChangerView taskChanger = getTaskChanger();
+        if (taskChanger != null) taskChanger.show(this, false /* settled */);
     }
 
     @Override
@@ -272,6 +326,11 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
             showDesktopApps = true;
         }
         super.onGestureAnimationEnd();
+        if (endTarget != GestureState.GestureEndTarget.RECENTS
+                && endTarget != GestureState.GestureEndTarget.HOME) {
+            TaskChangerView taskChanger = getTaskChanger();
+            if (taskChanger != null) taskChanger.hide();
+        }
         if (showDesktopApps) {
             SystemUiProxy.INSTANCE.get(mContainer).showDesktopApps(mContainer.getDisplayId(),
                     /* transition */ null, /* taskIdToReorderToFront */ null,

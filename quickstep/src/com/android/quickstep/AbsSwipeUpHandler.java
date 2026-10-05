@@ -3095,6 +3095,8 @@ public abstract class AbsSwipeUpHandler<
     /**
      * Applies the transform on the recents animation
      */
+    private static final float TASK_CHANGER_WINDOW_FADE = 0.3f;
+
     protected void applyScrollAndTransform() {
         // No need to apply any transform if there is ongoing swipe-to-home animator
         //    swipe-to-pip handles the leash solely
@@ -3126,6 +3128,10 @@ public abstract class AbsSwipeUpHandler<
                         transformParams, taskViewSimulator, progress)) {
                     continue;
                 }
+                boolean taskChanger = mRecentsView != null && mRecentsView.isContentForcedHidden();
+                transformParams.setTargetAlpha(taskChanger
+                        ? 1f - Utilities.boundToRange(progress / TASK_CHANGER_WINDOW_FADE, 0f, 1f)
+                        : 1f);
                 taskViewSimulator.apply(transformParams);
             }
         }

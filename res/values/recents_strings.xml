@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2026 The PenguinOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <plurals name="task_changer_active_apps">
+        <item quantity="one">%d active app</item>
+        <item quantity="other">%d active apps</item>
+    </plurals>
+
+    <string name="task_changer_layout_title">Layout type</string>
+    <string name="task_changer_layout_carousel">Carousel</string>
+    <string name="task_changer_layout_tilt">Tilt stack</string>
+    <string name="task_changer_layout_grid">Grid</string>
+    <string name="task_changer_layout_vertical">Vertical list</string>
+    <string name="task_changer_layout_slim">Slim list</string>
+    <string name="task_changer_details_title">Detail settings</string>
+    <string name="task_changer_mini_title">Mini mode</string>
+    <string name="task_changer_mini_summary">Show a small row of recent apps at the bottom of the screen, easy to reach with one hand</string>
+    <string name="task_changer_center_title">Center the currently running app</string>
+    <string name="task_changer_center_summary">When you open recents, put the app you were using in the middle</string>
+    <string name="task_changer_label_title">App label</string>
+    <string name="task_changer_label_summary">Show the name of each app</string>
+    <string name="task_changer_search_title">Search button</string>
+    <string name="task_changer_search_summary">Show a search button on the recent apps screen</string>
+    <string name="task_changer_circular_title">Circular list</string>
+    <string name="task_changer_circular_summary">Bend the list round as it scrolls</string>
+</resources>

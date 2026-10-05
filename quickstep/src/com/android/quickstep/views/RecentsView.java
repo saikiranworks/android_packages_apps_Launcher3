@@ -716,6 +716,8 @@ public abstract class RecentsView<
 
     @ViewDebug.ExportedProperty(category = "launcher")
     protected float mContentAlpha = 1;
+    private float mRequestedContentAlpha = 1;
+    private boolean mContentForcedHidden;
     @ViewDebug.ExportedProperty(category = "launcher")
     protected float mFullscreenProgress = 0;
     /**
@@ -2417,9 +2419,59 @@ public abstract class RecentsView<
         }
         int scroll = getPagedOrientationHandler().getPrimaryScroll(this);
         mClearAllButton.onRecentsViewScroll(scroll, mOverviewGridEnabled);
+        applyTilt(scroll);
 
         // Clear all button alpha was set by the previous line.
         mActionsView.getIndexScrollAlpha().updateValue(1 - mClearAllButton.getScrollAlpha());
+    }
+
+    /**
+     * Turns the cards either side of the centre away from the viewer, as Samsung's tilt stack
+     * does, so the carousel reads as a fanned out stack.
+     */
+    private void applyTilt(int scroll) {
+        boolean tilt = mOverviewStateEnabled
+                && getPagedOrientationHandler().isLayoutNaturalToLauncher()
+                && TaskChangerView.isTiltStack(getContext());
+        float centre = scroll + getWidth() / 2f;
+        float density = getResources().getDisplayMetrics().density;
+        for (TaskView taskView : getTaskViews()) {
+            if (!tilt) {
+                if (taskView.getRotationY() != 0f || taskView.getTiltTranslationX() != 0f) {
+                    taskView.setRotationY(0f);
+                    taskView.setTiltTranslationX(0f);
+                    taskView.setTranslationZ(0f);
+                    taskView.resetPivot();
+                }
+                continue;
+            }
+            float width = Math.max(1, taskView.getWidth());
+            // Where the card would sit without the tilt's own pull
+            float x = taskView.getLeft() + taskView.getTranslationX()
+                    - taskView.getTiltTranslationX();
+            float offset = (x + width / 2f - centre) / width;
+            float distance = Math.abs(offset);
+            float sign = Math.signum(offset);
+            // The first card either side tucks in a little behind the centre one, the rest
+            // gather behind it
+            float pull = Math.min(distance, 1f) * 0.36f + Math.max(distance - 1f, 0f) * 0.82f;
+            taskView.setCameraDistance(2400 * density);
+            taskView.setPivotX(sign > 0 ? 0 : width);
+            // The outer edge recedes, as the side cards turn away from the viewer
+            taskView.setRotationY(sign * Math.min(distance, 1f) * TaskChangerView.TILT_DEGREES);
+            taskView.setTiltTranslationX(-sign * pull * width);
+            taskView.setTranslationZ(-distance * density);
+        }
+    }
+
+    /** Stands every card upright again. */
+    protected void resetTilt() {
+        for (TaskView taskView : getTaskViews()) {
+            taskView.setRotationY(0f);
+            taskView.setTiltTranslationX(0f);
+            taskView.setTranslationZ(0f);
+            taskView.resetPivot();
+        }
     }
 
     @Override
@@ -3653,7 +3705,21 @@ public abstract class RecentsView<
         return mContentAlpha;
     }
 
+    /** Keeps the carousel hidden whatever alpha the state animations ask for. */
+    public void setContentForcedHidden(boolean hidden) {
+        if (mContentForcedHidden == hidden) return;
+        mContentForcedHidden = hidden;
+        setContentAlpha(mRequestedContentAlpha);
+    }
+
+    public boolean isContentForcedHidden() {
+        return mContentForcedHidden;
+    }
+
     public void setContentAlpha(float alpha) {
+        mRequestedContentAlpha = alpha;
+        // The task changer stands in for the carousel; the state animations mustn't bring it back
+        if (mContentForcedHidden) alpha = 0;
         if (alpha == mContentAlpha) {
             return;
         }

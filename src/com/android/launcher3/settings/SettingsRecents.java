@@ -48,6 +48,9 @@ import com.android.launcher3.R;
 import com.android.launcher3.display.DisplayController;
 import com.android.launcher3.display.LauncherDisplayInfo;
 import com.android.launcher3.util.VibratorWrapper;
+import com.android.launcher3.settings.preferences.TaskChangerLayoutPreference;
+import com.android.launcher3.util.SafeCloseable;
+import com.android.launcher3.util.SettingsCache;
 
 import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity;
 import com.android.settingslib.widget.SettingsBasePreferenceFragment;
@@ -191,6 +194,15 @@ public class SettingsRecents extends CollapsingToolbarBaseActivity
             // If the target preference is not in the current preference screen, find the parent
             // preference screen that contains the target preference and set it as the preference
             // screen.
+            TaskChangerLayoutPreference layout = findPreference("pref_recents_layout");
+            if (layout != null) {
+                updateTaskChangerDetails(layout.getLayout());
+                layout.setOnPreferenceChangeListener((pref, value) -> {
+                    updateTaskChangerDetails((String) value);
+                    return true;
+                });
+            }
+
             if (mHighLightKey != null
                     && !isKeyInPreferenceGroup(mHighLightKey, screen)) {
                 final PreferenceScreen parentPreferenceScreen =
@@ -298,6 +310,21 @@ public class SettingsRecents extends CollapsingToolbarBaseActivity
             }
 
             return true;
+        }
+
+        /** Shows only the details that apply to the chosen recents layout. */
+        private void updateTaskChangerDetails(String layout) {
+            boolean carousel = "carousel".equals(layout) || "tilt".equals(layout);
+            boolean list = "vertical".equals(layout) || "slim".equals(layout);
+            setVisible("pref_recents_mini", carousel);
+            setVisible("pref_recents_center_running", carousel);
+            setVisible("pref_recents_app_label", carousel || "grid".equals(layout));
+            setVisible("pref_recents_circular", list);
+        }
+
+        private void setVisible(String key, boolean visible) {
+            Preference preference = findPreference(key);
+            if (preference != null) preference.setVisible(visible);
         }
 
         @Override
