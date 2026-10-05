@@ -19,7 +19,7 @@ package com.android.launcher3.folder;
 import static com.android.launcher3.LauncherSettings.Favorites.DESKTOP_ICON_FLAG;
 import static com.android.launcher3.folder.ClippedFolderIconLayoutRule.MAX_NUM_ITEMS_IN_PREVIEW;
 import static com.android.launcher3.icons.BitmapInfo.FLAG_THEMED;
-import static com.android.launcher3.model.data.FolderInfo.BIG_FOLDER_LARGE_ICON_COUNT;
+import static com.android.launcher3.model.data.FolderInfo.MAX_FOLDER_SPAN;
 
 import android.content.Context;
 import android.content.res.Configuration;
@@ -44,10 +44,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Draws the preview of a "big" (2x2) {@link FolderIcon}: the first
- * {@link com.android.launcher3.model.data.FolderInfo#BIG_FOLDER_LARGE_ICON_COUNT} apps as large,
- * individually launchable icons, plus a mini 2x2 cluster of the remaining apps in the last
- * quadrant that opens the folder when tapped.
+ * Draws the preview of a "big" (2x2 or 3x3) {@link FolderIcon}: an app as a large, individually
+ * launchable icon in every cell but the last, plus a mini 2x2 cluster of the remaining apps in the
+ * last cell that opens the folder when tapped.
  *
  * <p>This class owns the big-folder layout math, drawing, and the per-quadrant hit rectangles used
  * to route taps. {@link FolderIcon} delegates to it only while the folder is big; normal folders
@@ -97,7 +96,7 @@ public class LargeFolderPreview {
 
     // Hit rectangles in FolderIcon-local coordinates. mLargeRects[i] launches mLargeItems.get(i);
     // mClusterRect opens the folder.
-    private final Rect[] mLargeRects = new Rect[BIG_FOLDER_LARGE_ICON_COUNT];
+    private final Rect[] mLargeRects = new Rect[MAX_FOLDER_SPAN * MAX_FOLDER_SPAN - 1];
     private final Rect mClusterRect = new Rect();
     private final Rect mTmpRect = new Rect();
     // The frosted panel rect (the whole 2x2 preview square, slightly inset).
@@ -148,6 +147,20 @@ public class LargeFolderPreview {
         mAcceptStrokePaint.setColor(ACCENT);
     }
 
+    /** Cells along each side of the preview: 2 for a large folder, 3 for an extra-large one. */
+    private int grid() {
+        if (mIcon.mInfo == null || mIcon.mInfo.forceBigPreview) {
+            return 2;
+        }
+        return Math.max(2, mIcon.mInfo.getFolderSpan());
+    }
+
+    /** Apps shown as large icons: every cell but the last, which holds the rest as a cluster. */
+    private int largeCount() {
+        int n = grid();
+        return n * n - 1;
+    }
+
     /**
      * Rebuilds the icon drawables from the folder's ordered contents. Should be called whenever the
      * folder contents change.
@@ -160,7 +173,7 @@ public class LargeFolderPreview {
 
         for (int i = 0; i < orderedContents.size(); i++) {
             ItemInfo item = orderedContents.get(i);
-            if (i < BIG_FOLDER_LARGE_ICON_COUNT) {
+            if (i < largeCount()) {
                 mLargeItems.add(item);
                 mLargeDrawables.add(newIcon(item));
                 requestHighResIfNeeded(item);
@@ -250,7 +263,7 @@ public class LargeFolderPreview {
             int drawerSide = drawerTileContentWidth();
             int cap = drawerSide > 0
                     ? Math.round(drawerSide * PREVIEW_SIZE_FRACTION)
-                    : Math.round(MAX_PREVIEW_SIZE_DP * mDensity);
+                    : Math.round(MAX_PREVIEW_SIZE_DP * mDensity * grid() / 2f);
             side = Math.min(side, cap);
         }
         if (side <= 0 || width <= 0) {
@@ -260,18 +273,20 @@ public class LargeFolderPreview {
 
         int left = (width - side) / 2;
         int previewTop = top + Math.max(0, (availableHeight - side) / 2);
-        int gap = Math.round(side * QUADRANT_GAP_FRACTION);
-        int cell = (side - gap) / 2;
+        int n = grid();
+        int gap = Math.round(side * QUADRANT_GAP_FRACTION / (n - 1) * (n == 2 ? 1f : 1.4f));
+        int cell = (side - gap * (n - 1)) / n;
 
-        // Quadrant top-left corners: 0 1 / 2 3
-        int[] qx = {left, left + cell + gap, left, left + cell + gap};
-        int[] qy = {previewTop, previewTop, previewTop + cell + gap, previewTop + cell + gap};
-
-        for (int i = 0; i < BIG_FOLDER_LARGE_ICON_COUNT; i++) {
-            mLargeRects[i].set(qx[i], qy[i], qx[i] + cell, qy[i] + cell);
+        // Cells in reading order; the last one holds the cluster.
+        for (int i = 0; i < n * n; i++) {
+            int x = left + (i % n) * (cell + gap);
+            int y = previewTop + (i / n) * (cell + gap);
+            if (i < largeCount()) {
+                mLargeRects[i].set(x, y, x + cell, y + cell);
+            } else {
+                mClusterRect.set(x, y, x + cell, y + cell);
+            }
         }
-        int cq = BIG_FOLDER_LARGE_ICON_COUNT;
-        mClusterRect.set(qx[cq], qy[cq], qx[cq] + cell, qy[cq] + cell);
 
         // The frosted panel frames the whole preview, expanded a touch past the icons.
         float pad = gap * 0.5f;
@@ -298,7 +313,10 @@ public class LargeFolderPreview {
             canvas.drawRoundRect(mPanelRect, radius, radius, mAcceptStrokePaint);
         }
 
-        for (int i = 0; i < BIG_FOLDER_LARGE_ICON_COUNT && i < mLargeDrawables.size(); i++) {
+        if (mIconsHidden) {
+            return;
+        }
+        for (int i = 0; i < largeCount() && i < mLargeDrawables.size(); i++) {
             drawCentered(canvas, mLargeDrawables.get(i), mLargeRects[i], LARGE_ICON_FRACTION);
         }
         drawCluster(canvas, mClusterRect);
@@ -322,6 +340,31 @@ public class LargeFolderPreview {
         updateGeometry(mIcon.getWidth(), mIcon.getHeight(), mIcon.getPaddingTop(),
                 mIcon.getBigFolderLabelHeight());
         mPanelRect.roundOut(out);
+    }
+
+    public void getItemRect(int index, Rect out) {
+        updateGeometry(mIcon.getWidth(), mIcon.getHeight(), mIcon.getPaddingTop(),
+                mIcon.getBigFolderLabelHeight());
+        if (index < largeCount()) {
+            Rect cell = mLargeRects[index];
+            int size = Math.round(Math.min(cell.width(), cell.height()) * LARGE_ICON_FRACTION);
+            out.set(cell.centerX() - size / 2, cell.centerY() - size / 2,
+                    cell.centerX() + size / 2, cell.centerY() + size / 2);
+            return;
+        }
+        int cx = mClusterRect.centerX();
+        int cy = mClusterRect.centerY();
+        int mini = index - largeCount();
+        if (mini >= Math.min(mClusterDrawables.size(), 4)) {
+            out.set(cx, cy, cx, cy);
+            return;
+        }
+        int side = mClusterRect.width();
+        int half = Math.round(side * CLUSTER_SPACING_FRACTION) / 2;
+        int size = Math.round(side * CLUSTER_ICON_FRACTION);
+        int x = cx + (mini % 2 == 0 ? -half : half);
+        int y = cy + (mini < 2 ? -half : half);
+        out.set(x - size / 2, y - size / 2, x + size / 2, y + size / 2);
     }
 
     private void drawCluster(Canvas canvas, Rect quadrant) {
@@ -369,7 +412,7 @@ public class LargeFolderPreview {
     public WorkspaceItemInfo getLaunchTargetForPoint(float x, float y) {
         int ix = Math.round(x);
         int iy = Math.round(y);
-        for (int i = 0; i < mLargeRects.length && i < mLargeItems.size(); i++) {
+        for (int i = 0; i < largeCount() && i < mLargeItems.size(); i++) {
             if (mLargeRects[i].contains(ix, iy)
                     && mLargeItems.get(i) instanceof WorkspaceItemInfo wii) {
                 return wii;

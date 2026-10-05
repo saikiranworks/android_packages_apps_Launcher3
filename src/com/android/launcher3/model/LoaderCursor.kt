@@ -433,9 +433,20 @@ constructor(
      */
     fun applyBigFolderFootprint(folder: FolderInfo) {
         if (folder.container != CONTAINER_DESKTOP) return
-        val span = FolderInfo.BIG_FOLDER_SPAN
         val countX = idp.numColumns
         val countY = idp.numRows
+        if (folder.hasOption(FolderInfo.FLAG_SIZE_CHOSEN)) {
+            // A size picked from the folder's menu stays, unless it no longer fits the grid.
+            val chosen = folder.getFolderSpan()
+            if (folder.cellX + chosen > countX || folder.cellY + chosen > countY) {
+                occupied[folder.screenId]?.markCells(folder, false)
+                folder.spanX = 1
+                folder.spanY = 1
+                occupied[folder.screenId]?.markCells(folder, true)
+            }
+            return
+        }
+        val span = FolderInfo.BIG_FOLDER_SPAN
         if (countX < span || countY < span) return
         val occupancy = occupied[folder.screenId]
         val wantBig = folder.getContents().size >= FolderInfo.BIG_FOLDER_MIN_ITEMS

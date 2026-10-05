@@ -20,6 +20,7 @@ import static android.appwidget.AppWidgetManager.INVALID_APPWIDGET_ID;
 
 import android.appwidget.AppWidgetProviderInfo;
 import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.os.Handler;
 import android.os.Parcelable;
@@ -97,6 +98,9 @@ public class LauncherAppWidgetHostView extends BaseLauncherAppWidgetHostView
 
     private int mFocusRectOutsets = 0;
 
+    private final WidgetStack mStack = new WidgetStack(this);
+    private boolean mIsStackPage;
+
     public LauncherAppWidgetHostView(Context context) {
         super(context);
         mActivityContext = ActivityContext.lookupContext(context);
@@ -171,6 +175,36 @@ public class LauncherAppWidgetHostView extends BaseLauncherAppWidgetHostView
     public void onViewAdded(View child) {
         super.onViewAdded(child);
         mReapplyOnResumeUpdates |= isDeferringUpdates();
+        // Null while a superclass constructor is still adding views.
+        if (mStack != null) {
+            mStack.onViewAdded(child);
+        }
+    }
+
+    /** Marks this as a widget stacked onto another, which handles the touches for both. */
+    public void setStackPage(boolean stackPage) {
+        mIsStackPage = stackPage;
+    }
+
+    public boolean isStackPage() {
+        return mIsStackPage;
+    }
+
+    public WidgetStack getStack() {
+        return mStack;
+    }
+
+    @Override
+    protected void dispatchDraw(Canvas canvas) {
+        if (mStack == null || !mStack.isStacked()) {
+            super.dispatchDraw(canvas);
+            return;
+        }
+        int count = canvas.save();
+        mStack.clip(canvas);
+        super.dispatchDraw(canvas);
+        canvas.restoreToCount(count);
+        mStack.drawIndicator(canvas);
     }
 
     @Override
@@ -238,6 +272,19 @@ public class LauncherAppWidgetHostView extends BaseLauncherAppWidgetHostView
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
+        if (mIsStackPage) {
+            return false;
+        }
+        if (mStack.isStacked()) {
+            if (ev.getAction() == MotionEvent.ACTION_DOWN) {
+                // Vertical swipes flip the stack rather than opening all apps or the shade.
+                mActivityContext.getDragLayer().requestDisallowInterceptTouchEvent(true);
+            }
+            if (mStack.onInterceptTouchEvent(ev)) {
+                mLongPressHelper.cancelLongPress();
+                return true;
+            }
+        }
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
             BaseDragLayer<?> dragLayer = mActivityContext.getDragLayer();
             if (mIsScrollable) {
@@ -261,13 +308,16 @@ public class LauncherAppWidgetHostView extends BaseLauncherAppWidgetHostView
     public void beforeDragStart() {
         // If the widget is scrollable, this reverses the disallowInterceptTouchEvent request
         // made during ACTION_DOWN, allowing the DragLayer to properly take over the touch stream.
-        if (mIsScrollable) {
+        if (mIsScrollable || mStack.isStacked()) {
             mActivityContext.getDragLayer().requestDisallowInterceptTouchEvent(false);
         }
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
+        if (mStack.onTouchEvent(ev)) {
+            return true;
+        }
         if (Flags.enableCursorDrivenWorkflows()) {
             return onDelegateTouchEvent(ev);
         }
@@ -280,6 +330,9 @@ public class LauncherAppWidgetHostView extends BaseLauncherAppWidgetHostView
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         mIsAttachedToWindow = true;
+        if (!mIsStackPage) {
+            mStack.bind();
+        }
         checkIfAutoAdvance();
     }
 
@@ -321,6 +374,9 @@ public class LauncherAppWidgetHostView extends BaseLauncherAppWidgetHostView
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
         mIsScrollable = isTaggedAsScrollable() || checkScrollableRecursively(this);
+        if (mStack != null) {
+            mStack.onLayout();
+        }
     }
 
     /**

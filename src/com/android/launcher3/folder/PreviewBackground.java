@@ -31,10 +31,12 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.RadialGradient;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.Region;
 import android.graphics.Shader;
 import android.util.Property;
@@ -253,6 +255,9 @@ public class PreviewBackground extends DelegatedCellDrawing {
         getShape().drawShape(canvas, getOffsetX(), getOffsetY(), getScaledRadius(), mPaint);
         drawShadow(canvas);
     }
+
+    private final Path mGlassPath = new Path();
+    private final RectF mGlassBounds = new RectF();
 
     private ShapeDelegate getShape() {
         return ThemeManager.INSTANCE.get(mContext).getFolderShape();

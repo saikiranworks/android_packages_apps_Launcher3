@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="folder_size_small">Small folder</string>
+    <string name="folder_size_large">Large folder</string>
+    <string name="folder_size_extra_large">Extra large folder</string>
+    <string name="folder_size_no_room">No room on this page for that size</string>
+    <string name="widget_stack_remove_page">Remove from stack</string>
+</resources>

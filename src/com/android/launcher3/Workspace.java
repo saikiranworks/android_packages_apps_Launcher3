@@ -77,12 +77,14 @@ import android.util.Log;
 import android.util.SparseArray;
 import android.view.DragAndDropPermissions;
 import android.view.Gravity;
+import android.view.HapticFeedbackConstants;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
@@ -160,6 +162,7 @@ import com.android.launcher3.widget.LauncherAppWidgetHostView;
 import com.android.launcher3.widget.NavigableAppWidgetHostView;
 import com.android.launcher3.widget.PendingAddShortcutInfo;
 import com.android.launcher3.widget.PendingAddWidgetInfo;
+import com.android.launcher3.widget.WidgetStack;
 import com.android.launcher3.widget.util.WidgetSizeHandler;
 import com.android.systemui.plugins.shared.LauncherOverlayManager.LauncherOverlayCallbacks;
 import com.android.systemui.plugins.shared.LauncherOverlayManager.LauncherOverlayTouchProxy;
@@ -629,6 +632,7 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
         if (ENFORCE_DRAG_EVENT_ORDER) {
             enforceDragParity("onDragEnd", 0, 0);
         }
+        setWidgetStackTarget(null);
 
         updateChildrenLayersEnabled();
         StateManager<LauncherState, Launcher> stateManager = mLauncher.getStateManager();
@@ -2197,6 +2201,78 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
         return false;
     }
 
+    /** The widget a dragged widget would be stacked onto if dropped now. */
+    private View mStackTarget;
+
+    /**
+     * Picks the widget under a dragged widget to stack it onto: one of the same size whose centre
+     * the dragged widget's centre is close to, as with dropping an app onto another for a folder.
+     */
+    private boolean updateWidgetStackTarget(DragObject d) {
+        View over = mDragInfo == null || mDragTargetLayout == null ? null
+                : mDragTargetLayout.getChildAt(mTargetCell[0], mTargetCell[1]);
+        View target = null;
+        if (over instanceof LauncherAppWidgetHostView && over != mDragInfo.cell
+                && WidgetStack.canStack(d.dragInfo, over.getTag())) {
+            CellLayoutLayoutParams lp = (CellLayoutLayoutParams) over.getLayoutParams();
+            int[] center = new int[2];
+            mDragTargetLayout.regionToCenterPoint(lp.getCellX(), lp.getCellY(), lp.cellHSpan,
+                    lp.cellVSpan, center);
+            float distance = (float) Math.hypot(mDragViewVisualCenter[0] - center[0],
+                    mDragViewVisualCenter[1] - center[1]);
+            if (distance < Math.min(over.getWidth(), over.getHeight()) * 0.3f) {
+                target = over;
+            }
+        }
+        setWidgetStackTarget(target);
+        return target != null;
+    }
+
+    private void setWidgetStackTarget(View target) {
+        if (target == mStackTarget) return;
+        if (mStackTarget != null) {
+            mStackTarget.animate().scaleX(1f).scaleY(1f).setDuration(220).start();
+        }
+        if (target != null) {
+            mReorderAlarm.cancelAlarm();
+            if (mDragTargetLayout != null) {
+                mDragTargetLayout.revertTempState();
+            }
+            // Sinks a little, ready to take the widget onto its stack.
+            target.animate().scaleX(0.9f).scaleY(0.9f).setDuration(220).start();
+            performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
+        }
+        mStackTarget = target;
+    }
+
+    /**
+     * Stacks the dragged widget, with anything stacked on it, onto {@link #mStackTarget}. The
+     * dragged widget leaves the grid and the database but stays bound, as a page of the stack.
+     */
+    private boolean stackWidget(View cell, DragObject d) {
+        if (!(mStackTarget instanceof LauncherAppWidgetHostView target)
+                || !(d.dragInfo instanceof LauncherAppWidgetInfo dragged)
+                || !(target.getTag() instanceof LauncherAppWidgetInfo onto)) {
+            return false;
+        }
+        mStackTarget = null;
+        List<Integer> added = new ArrayList<>();
+        added.add(dragged.appWidgetId);
+        added.addAll(WidgetStack.remove(getContext(), dragged.appWidgetId));
+        WidgetStack.stack(getContext(), onto.appWidgetId, added);
+
+        CellLayout parent = getParentCellLayoutForView(cell);
+        if (parent != null) {
+            parent.removeView(cell);
+        }
+        mLauncher.getModelWriter().deleteItemFromDatabase(dragged, "stacked onto a widget");
+        target.getStack().bind();
+        mLauncher.getDragLayer().animateViewIntoPosition(d.dragView, target, -1, null);
+        target.animate().scaleX(1f).scaleY(1f).setDuration(420)
+                .setInterpolator(new OvershootInterpolator(2.2f)).start();
+        return true;
+    }
+
     boolean createUserFolderIfNecessary(View newView, int container, CellLayout target,
             int[] targetCell, float distance, boolean external, DragObject d) {
         if (distance > target.getFolderCreationRadius(targetCell)) return false;
@@ -2387,6 +2463,13 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
                         mDragViewVisualCenter[1], spanX, spanY, dropTargetLayout, mTargetCell);
                 float distance = dropTargetLayout.getDistanceFromWorkspaceCellVisualCenter(
                         mDragViewVisualCenter[0], mDragViewVisualCenter[1], mTargetCell);
+
+                if (mStackTarget != null && stackWidget(cell, d)) {
+                    if (!mLauncher.isInState(EDIT_MODE)) {
+                        mLauncher.getStateManager().goToState(NORMAL, SPRING_LOADED_EXIT_DELAY);
+                    }
+                    return;
+                }
 
                 // If the item being dropped is a shortcut and the nearest drop
                 // cell also contains a shortcut, then create a folder with the two shortcuts.
@@ -2836,6 +2919,11 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
 
             float targetCellDistance = mDragTargetLayout.getDistanceFromWorkspaceCellVisualCenter(
                     mDragViewVisualCenter[0], mDragViewVisualCenter[1], mTargetCell);
+
+            if (updateWidgetStackTarget(d)) {
+                // Over a widget it would stack onto: hold the grid still instead of reordering.
+                return;
+            }
 
             manageFolderFeedback(targetCellDistance, d);
 

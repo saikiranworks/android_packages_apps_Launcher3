@@ -248,6 +248,7 @@ import com.android.launcher3.widget.PendingAddWidgetInfo;
 import com.android.launcher3.widget.PendingAppWidgetHostView;
 import com.android.launcher3.widget.WidgetAddFlowHandler;
 import com.android.launcher3.widget.WidgetManagerHelper;
+import com.android.launcher3.widget.WidgetStack;
 import com.android.launcher3.widget.WidgetVisibilityTracker;
 import com.android.launcher3.widget.custom.CustomWidgetManager;
 import com.android.launcher3.widget.picker.model.WidgetPickerDataProvider;
@@ -1904,6 +1905,9 @@ public class Launcher extends StatefulActivity<LauncherState>
             final LauncherAppWidgetInfo widgetInfo = (LauncherAppWidgetInfo) itemInfo;
             mWorkspace.removeWorkspaceItem(v);
             if (deleteFromDb) {
+                for (int id : WidgetStack.remove(this, widgetInfo.appWidgetId)) {
+                    getAppWidgetHolder().deleteAppWidgetId(id);
+                }
                 getModelWriter().deleteWidgetInfo(widgetInfo, getAppWidgetHolder(), reason);
             }
         } else {

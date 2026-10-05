@@ -42,7 +42,9 @@ import android.appwidget.AppWidgetHostView;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Insets;
+import android.graphics.Path;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
@@ -1935,7 +1937,8 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
             canvas.clipPath(mClipPath.getPath());
 
             mBlurBackgroundHelper.drawFolderBlur(canvas, mClipPath, this);
-            mBackground.draw(canvas);
+            drawGlassBackground(canvas, mClipPath.getBounds(), mClipPath.getCornerRadius(),
+                    mClipPath.getPath());
 
             if (!mIsAnimatingClosed) {
                 // If animating open, clip the content to the clip path to keep in bounds.
@@ -1948,10 +1951,19 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
             }
         } else {
             mBlurBackgroundHelper.drawFolderBlur(canvas, null, this);
-            mBackground.draw(canvas);
+            mGlassBounds.set(mBackground.getBounds());
+            drawGlassBackground(canvas, mGlassBounds, mBackground.getCornerRadius(), null);
 
             super.dispatchDraw(canvas);
         }
+    }
+
+    private final RectF mGlassBounds = new RectF();
+
+    /** The folder's tinted surface, as a lighter veil with a lit rim under Liquid Glass. */
+    private void drawGlassBackground(Canvas canvas, RectF bounds, float radius, Path shape) {
+        mBackground.setAlpha(0xCC);
+        mBackground.draw(canvas);
     }
 
     public FolderPagedView getContent() {

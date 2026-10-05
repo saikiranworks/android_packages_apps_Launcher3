@@ -65,6 +65,7 @@ constructor(
     private val workspaceBlurRenderNode = RenderNode("workspaceBlur")
     private val workspaceBlurRenderNodeOutline = Outline()
     private val bounds = Rect()
+    private val glassBounds = android.graphics.RectF()
     private val folderBlurDrawable: BackgroundBlurDrawable? by lazy {
         if (!isBlurEnabled()) null
         else
@@ -129,10 +130,11 @@ constructor(
         }
 
         drawCrossWindowBlur(canvas, pathWrapper, view)
-        drawWorkspaceBlur(canvas, pathWrapper?.path, view)
+        drawWorkspaceBlur(canvas, pathWrapper, view)
     }
 
-    private fun drawWorkspaceBlur(canvas: Canvas, path: Path?, view: View) {
+    private fun drawWorkspaceBlur(canvas: Canvas, pathWrapper: PathWrapper?, view: View) {
+        val path = pathWrapper?.path
         if (!workspaceBlurRenderNode.hasDisplayList()) {
             return
         }
@@ -154,13 +156,9 @@ constructor(
         workspaceBlurRenderNode.setOutline(workspaceBlurRenderNodeOutline)
         workspaceBlurRenderNode.setClipToOutline(true)
 
-        workspaceBlurRenderNode.setRenderEffect(
-            RenderEffect.createBlurEffect(
-                folderBlurRadius,
-                folderBlurRadius,
-                Shader.TileMode.CLAMP
-            )
-        )
+        val blur =
+            RenderEffect.createBlurEffect(folderBlurRadius, folderBlurRadius, Shader.TileMode.CLAMP)
+        workspaceBlurRenderNode.setRenderEffect(blur)
         canvas.drawRenderNode(workspaceBlurRenderNode)
     }
 

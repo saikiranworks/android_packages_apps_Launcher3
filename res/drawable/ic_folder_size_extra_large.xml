@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2026 The PenguinOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="@dimen/options_menu_icon_size"
+    android:height="@dimen/options_menu_icon_size"
+    android:viewportWidth="24.0"
+    android:viewportHeight="24.0"
+    android:tint="@color/materialColorOnSurface">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M3,3h5v5h-5zM9.5,3h5v5h-5zM16,3h5v5h-5zM3,9.5h5v5h-5zM9.5,9.5h5v5h-5zM16,9.5h5v5h-5zM3,16h5v5h-5zM9.5,16h5v5h-5zM16,16h5v5h-5z" />
+</vector>

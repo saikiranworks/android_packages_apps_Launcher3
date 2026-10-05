@@ -940,7 +940,8 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
             return;
         }
         final int span = FolderInfo.BIG_FOLDER_SPAN;
-        boolean wantBig = mInfo.qualifiesAsBigFolder();
+        boolean wantBig = mInfo.qualifiesAsBigFolder()
+                && !mInfo.hasOption(FolderInfo.FLAG_SIZE_CHOSEN);
         boolean isBig = lp.cellHSpan >= span && lp.cellVSpan >= span;
         android.util.Log.d("BigFolder", "footprint '" + mInfo.title + "' contents="
                 + mInfo.getContents().size() + " wantBig=" + wantBig + " isBig=" + isBig
@@ -984,6 +985,51 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         mActivity.getModelWriter().updateItemInDatabase(mInfo);
         requestLayout();
         invalidate();
+    }
+
+    /**
+     * Resizes this workspace folder to a square of {@code span} cells, as picked from its menu:
+     * small (1), large (2) or extra large (3). It grows from where it is, or moves to the nearest
+     * spot with room. Returns false when the page has no room for that size.
+     */
+    public boolean setFolderSize(int span) {
+        if (mInfo == null || mInfo.container != LauncherSettings.Favorites.CONTAINER_DESKTOP
+                || !(getParent() != null && getParent().getParent() instanceof CellLayout cellLayout)
+                || !(getLayoutParams() instanceof CellLayoutLayoutParams lp)) {
+            return false;
+        }
+        if (cellLayout.getCountX() < span || cellLayout.getCountY() < span) {
+            return false;
+        }
+        cellLayout.markCellsAsUnoccupiedForView(this);
+        int cellX = Math.max(0, Math.min(lp.getCellX(), cellLayout.getCountX() - span));
+        int cellY = Math.max(0, Math.min(lp.getCellY(), cellLayout.getCountY() - span));
+        if (!cellLayout.isRegionVacant(cellX, cellY, span, span)) {
+            int[] center = new int[2];
+            cellLayout.regionToCenterPoint(lp.getCellX(), lp.getCellY(), lp.cellHSpan,
+                    lp.cellVSpan, center);
+            int[] vacant = cellLayout.findNearestVacantArea(center[0], center[1], span, span,
+                    span, span, null, null);
+            if (vacant == null || vacant[0] < 0 || vacant[1] < 0) {
+                cellLayout.markCellsAsOccupiedForView(this);
+                return false;
+            }
+            cellX = vacant[0];
+            cellY = vacant[1];
+        }
+        applyFootprint(lp, cellX, cellY, span);
+        cellLayout.markCellsAsOccupiedForView(this);
+        mInfo.options |= FolderInfo.FLAG_SIZE_CHOSEN;
+        mActivity.getModelWriter().updateItemInDatabase(mInfo);
+        mLargeFolderPreview.onItemsChanged(getOrderedContents());
+        requestLayout();
+        invalidate();
+        // Settles into its new size with a little bounce.
+        setScaleX(0.86f);
+        setScaleY(0.86f);
+        animate().scaleX(1f).scaleY(1f).setDuration(420)
+                .setInterpolator(new android.view.animation.OvershootInterpolator(2.4f)).start();
+        return true;
     }
 
     private void applyFootprint(CellLayoutLayoutParams lp, int cellX, int cellY, int span) {

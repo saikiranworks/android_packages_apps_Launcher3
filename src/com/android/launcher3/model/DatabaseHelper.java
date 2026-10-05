@@ -52,11 +52,14 @@ import com.android.launcher3.util.IntSet;
 import com.android.launcher3.util.PackageManagerHelper;
 import com.android.launcher3.util.Thunk;
 import com.android.launcher3.widget.LauncherWidgetHolder;
+import com.android.launcher3.widget.WidgetStack;
 
 import java.io.File;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -322,6 +325,15 @@ public class DatabaseHelper extends SQLiteOpenHelper implements
             final IntSet validWidgets = IntSet.wrap(LauncherDbUtils.queryIntArray(false, db,
                     Favorites.TABLE_NAME, Favorites.APPWIDGET_ID,
                     "itemType=" + Favorites.ITEM_TYPE_APPWIDGET, null, null));
+            // Widgets stacked onto others aren't in the db, so they're kept while their stack is.
+            Set<Integer> liveHosts = new HashSet<>();
+            for (int id : allWidgets) {
+                if (validWidgets.contains(id)) liveHosts.add(id);
+            }
+            WidgetStack.pruneOrphans(mContext, liveHosts);
+            for (int id : WidgetStack.allStackedIds(mContext)) {
+                validWidgets.add(id);
+            }
             boolean isAnyWidgetRemoved = false;
             for (int widgetId : allWidgets) {
                 if (!validWidgets.contains(widgetId)) {
