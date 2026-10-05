@@ -20,7 +20,6 @@
     xmlns:settings="http://schemas.android.com/apk/res/com.android.launcher3">
 
     <PreferenceCategory
-        android:key="recents_category_general"
         android:key="task_changer_layout_category"
         android:title="@string/task_changer_layout_title">
 
