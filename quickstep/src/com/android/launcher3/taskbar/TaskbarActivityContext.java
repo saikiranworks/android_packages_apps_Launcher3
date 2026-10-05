@@ -739,6 +739,9 @@ public class TaskbarActivityContext extends BaseTaskbarContext {
      * single window for taskbar and navbar.
      */
     public boolean isPhoneMode() {
+        if (mDeviceProfile.getDeviceProperties().getDeviceConfiguration().isExternalDisplay()) {
+            return false;
+        }
         if (mIsTaskbarEnabled == 0 && !isBubbleBarOnPhone()) {
             return true;
         }
@@ -1024,7 +1027,14 @@ public class TaskbarActivityContext extends BaseTaskbarContext {
 
     /** Returns whether taskbar should start align. */
     public boolean shouldStartAlignTaskbar() {
+        // A DeX desktop centres its dock, as a Mac's does.
+        if (isDexDock()) return false;
         return isThreeButtonNav() && mDeviceProfile.getTaskbarProfile().isStartAlignTaskbar();
+    }
+
+    /** Whether this taskbar is a DeX desktop's, drawn as a floating dock. */
+    public boolean isDexDock() {
+        return mDeviceProfile.getDeviceProperties().getDeviceConfiguration().isExternalDisplay();
     }
 
     public boolean isGestureNav() {

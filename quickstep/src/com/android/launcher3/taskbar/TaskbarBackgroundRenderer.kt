@@ -162,6 +162,10 @@ class TaskbarBackgroundRenderer(private val context: TaskbarActivityContext) {
     }
 
     private fun drawPersistentBackground(canvas: Canvas) {
+        if (context.isDexDock && !transientBackgroundBounds.isEmpty) {
+            drawDock(canvas)
+            return
+        }
         if (isAnimatingPinning || isAnimatingPersistentTaskbar) {
             val persistentTaskbarHeight = maxPersistentTaskbarHeight * backgroundProgress
             canvas.translate(0f, canvas.height - persistentTaskbarHeight)
@@ -181,6 +185,35 @@ class TaskbarBackgroundRenderer(private val context: TaskbarActivityContext) {
         canvas.translate(canvas.width - cornerRadius, -cornerRadius)
         canvas.drawPath(invertedRightCornerPath, paint)
     }
+
+    /**
+     * A DeX desktop's dock: a rounded, translucent shelf just around the apps, floating a little
+     * above the bottom of the screen, as a Mac's dock does.
+     */
+    private fun drawDock(canvas: Canvas) {
+        val density = context.resources.displayMetrics.density
+        val height = min(maxPersistentTaskbarHeight, backgroundHeight)
+        val margin = DOCK_MARGIN_DP * density
+        val padding = DOCK_PADDING_DP * density
+        dockRect.set(
+            transientBackgroundBounds.left - padding,
+            canvas.height - height + margin,
+            transientBackgroundBounds.right + padding,
+            canvas.height - margin,
+        )
+        val radius = DOCK_RADIUS_DP * density
+        dockPaint.color = paint.color
+        dockPaint.alpha = paint.alpha * DOCK_ALPHA / 255
+        canvas.drawRoundRect(dockRect, radius, radius, dockPaint)
+        dockStroke.strokeWidth = density
+        dockStroke.color = Color.WHITE
+        dockStroke.alpha = paint.alpha * DOCK_STROKE_ALPHA / 255
+        canvas.drawRoundRect(dockRect, radius, radius, dockStroke)
+    }
+
+    private val dockRect = RectF()
+    private val dockPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val dockStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
 
     private fun drawTransientBackground(canvas: Canvas) {
         val res = context.resources
@@ -281,6 +314,11 @@ class TaskbarBackgroundRenderer(private val context: TaskbarActivityContext) {
     companion object {
         const val MAX_ROUNDNESS = 1f
         private const val STROKE_ALPHA = 51
+        private const val DOCK_MARGIN_DP = 4f
+        private const val DOCK_PADDING_DP = 10f
+        private const val DOCK_RADIUS_DP = 16f
+        private const val DOCK_ALPHA = 170
+        private const val DOCK_STROKE_ALPHA = 40
         private const val DARK_THEME_SHADOW_ALPHA = 51f
         private const val LIGHT_THEME_SHADOW_ALPHA = 25f
     }

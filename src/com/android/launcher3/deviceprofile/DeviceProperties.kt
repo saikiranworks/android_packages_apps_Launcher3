@@ -101,7 +101,8 @@ data class DeviceProperties(
                 taskbarConfiguration =
                     TaskbarConfiguration(
                         isTaskbarPresent =
-                            (isLargeScreen ||
+                            // A DeX desktop always has its taskbar; the setting is the phone screen's.
+                            (deviceConfiguration.isExternalDisplay || isLargeScreen ||
                                 (taskbarOrBubbleBarOnPhones &&
                                     deviceConfiguration.isGestureMode)) && isTaskbarDrawnInProcess
                     ),
