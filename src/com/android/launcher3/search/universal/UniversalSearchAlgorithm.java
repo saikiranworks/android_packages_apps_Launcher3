@@ -37,6 +37,7 @@ public class UniversalSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
     // Past this, show what has arrived and fold slower providers in when they finish.
     private static final long PROVIDER_TIMEOUT_MS = 150;
     private static final int NO_FILTER = -1;
+    private static final int MAX_SCREENSHOTS = 8;
     private static final long USAGE_WINDOW_MS = 14L * 24 * 60 * 60 * 1000;
     private static final long USAGE_TTL_MS = 60_000;
 
@@ -130,6 +131,14 @@ public class UniversalSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
         if (lower.isEmpty()) {
             if (mSpotlight) {
                 return new AppMatches(suggestedApps(apps), 0);
+            // Spotlight suggests apps even with the App Library on; only the library itself
+            // lists them all.
+            if (mSpotlight) {
+                return new AppMatches(suggestedApps(apps), 0);
+            }
+            if (mAppLibrary) {
+                return new AppMatches(
+                        DefaultAppSearchAlgorithm.getTitleMatchResult(apps, "", true), 0);
             }
             return new AppMatches(new ArrayList<>(), 0);
         }
