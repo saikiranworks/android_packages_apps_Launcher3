@@ -24,6 +24,7 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -65,7 +66,7 @@ public class CaddyCategoryView extends AbstractFloatingView {
 
     /** Matches {@link com.android.launcher3.folder.Folder}'s background alpha. */
     private static final int SIDE_MARGIN_DP = 20;
-    private static final int TITLE_TOP_DP = 28;
+    private static final int TITLE_TOP_DP = 120;
     private static final int COLUMNS = 4;
     private static final int SCRIM_ALPHA = 0x59;
     private static final long OPEN_DURATION = 420;
@@ -107,7 +108,11 @@ public class CaddyCategoryView extends AbstractFloatingView {
 
         CaddyCategoryView view = new CaddyCategoryView(tile.getContext());
         view.populate(tile);
-        dragLayer.addView(view, new BaseDragLayer.LayoutParams(MATCH_PARENT, MATCH_PARENT));
+        BaseDragLayer.LayoutParams lp = new BaseDragLayer.LayoutParams(MATCH_PARENT, MATCH_PARENT);
+        // Full bleed, so the scrim runs under the status and navigation bars as well; the page
+        // pads itself by the insets.
+        lp.ignoreInsets = true;
+        dragLayer.addView(view, lp);
         view.mIsOpen = true;
         view.animateOpenFrom(tile);
         return view;
@@ -130,8 +135,10 @@ public class CaddyCategoryView extends AbstractFloatingView {
         mTitle = new TextView(context);
         mTitle.setText(info != null ? info.title : "");
         mTitle.setTextColor(Themes.getAttrColor(context, R.attr.folderTextColor));
-        mTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30);
-        mTitle.setTypeface(mTitle.getTypeface(), android.graphics.Typeface.BOLD);
+        // iOS's large title, in the face the launcher's own labels use.
+        mTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 34);
+        mTitle.setTypeface(Typeface.create(
+                Typeface.create("google-sans-flex", Typeface.NORMAL), 700, false));
         mTitle.setPadding(dp(4), 0, dp(4), dp(16));
         addView(mTitle, new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
 
