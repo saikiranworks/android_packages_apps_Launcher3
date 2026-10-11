@@ -17,6 +17,8 @@ import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.widget.FrameLayout
@@ -228,8 +230,19 @@ class TaskChangerView @JvmOverloads constructor(
         if (!shown) {
             shown = true
             alpha = 0f
+            scaleX = ENTER_SCALE
+            scaleY = ENTER_SCALE
+            translationY = dp(ENTER_RISE_DP).toFloat()
             visibility = VISIBLE
-            animate().alpha(1f).setDuration(FADE_MS).setListener(null).start()
+            animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .translationY(0f)
+                .setDuration(ENTER_MS)
+                .setInterpolator(DecelerateInterpolator(1.8f))
+                .setListener(null)
+                .start()
         }
     }
 
@@ -239,7 +252,15 @@ class TaskChangerView @JvmOverloads constructor(
      */
     fun leave() {
         if (!shown) return
-        animate().alpha(0f).setDuration(FADE_MS).setListener(null).start()
+        animate()
+            .alpha(0f)
+            .scaleX(LEAVE_SCALE)
+            .scaleY(LEAVE_SCALE)
+            .translationY(0f)
+            .setDuration(FADE_MS)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .setListener(null)
+            .start()
     }
 
     /** Takes the overlay down and gives the carousel back. */
@@ -250,6 +271,9 @@ class TaskChangerView @JvmOverloads constructor(
         animate().cancel()
         visibility = GONE
         alpha = 1f
+        scaleX = 1f
+        scaleY = 1f
+        translationY = 0f
         entries.clear()
         shownLayout = null
         adapter.notifyDataSetChanged()
@@ -569,6 +593,10 @@ class TaskChangerView @JvmOverloads constructor(
         private const val LAYOUT_MINI = "mini"
         private val LAYOUTS = listOf(LAYOUT_GRID, LAYOUT_VERTICAL, LAYOUT_SLIM, LAYOUT_MINI)
         private const val FADE_MS = 180L
+        private const val ENTER_MS = 380L
+        private const val ENTER_SCALE = 0.9f
+        private const val LEAVE_SCALE = 0.95f
+        private const val ENTER_RISE_DP = 28
 
         /** How far, in degrees, a card one page from the centre tilts in the tilt stack. */
         const val TILT_DEGREES = 28f

@@ -5023,6 +5023,7 @@ public abstract class RecentsView<
         runActionOnRemoteHandles(remoteTargetHandle -> {
             TransformParams params = remoteTargetHandle.getTransformParams();
             if (params.getTargetSet() != null) {
+                if (mContentForcedHidden) params.setTargetAlpha(0);
                 remoteTargetHandle.getTaskViewSimulator().apply(params);
             }
         });
