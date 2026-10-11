@@ -923,6 +923,9 @@ public abstract class AbsSwipeUpHandler<
     private void setIsLikelyToStartNewTask(boolean isLikelyToStartNewTask, boolean animate) {
         if (mIsLikelyToStartNewTask != isLikelyToStartNewTask) {
             mIsLikelyToStartNewTask = isLikelyToStartNewTask;
+            if (mRecentsView != null) {
+                mRecentsView.setLikelyToStartNewTask(isLikelyToStartNewTask);
+            }
             maybeUpdateRecentsAttachedState(animate);
         }
     }

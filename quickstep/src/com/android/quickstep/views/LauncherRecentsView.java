@@ -66,6 +66,8 @@ import kotlin.Unit;
 public class LauncherRecentsView extends RecentsView<QuickstepLauncher, LauncherState>
         implements StateListener<LauncherState> {
 
+    private boolean mQuickSwitching;
+
     public LauncherRecentsView(Context context) {
         this(context, null);
     }
@@ -153,7 +155,7 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
         TaskChangerView taskChanger = getTaskChanger();
         if (taskChanger != null) {
             if (toState == OVERVIEW || toState == BACKGROUND_APP) {
-                taskChanger.show(this, false /* settled */);
+                if (!mQuickSwitching) taskChanger.show(this, false /* settled */);
             } else {
                 taskChanger.leave();
             }
@@ -220,7 +222,7 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
             }
             updateCurveProperties();
             TaskChangerView taskChanger = getTaskChanger();
-            if (taskChanger != null) taskChanger.show(this, true /* settled */);
+            if (taskChanger != null && !mQuickSwitching) taskChanger.show(this, true /* settled */);
         }
     }
 
@@ -232,8 +234,22 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
                 isHandlingAtomicEvent);
         // A swipe up settling into the overview shows the task changer as it lets go
         if (endTarget == GestureState.GestureEndTarget.RECENTS) {
+            mQuickSwitching = false;
             TaskChangerView taskChanger = getTaskChanger();
             if (taskChanger != null) taskChanger.show(this, false /* settled */);
+        }
+    }
+
+    @Override
+    public void setLikelyToStartNewTask(boolean likely) {
+        // A swipe along the nav bar slides the next app in through the carousel
+        mQuickSwitching = likely;
+        TaskChangerView taskChanger = getTaskChanger();
+        if (taskChanger == null) return;
+        if (likely) {
+            taskChanger.hide();
+        } else {
+            taskChanger.show(this, false /* settled */);
         }
     }
 
@@ -309,7 +325,7 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
     public void onGestureAnimationStart(GroupedTaskInfo groupedTaskInfo) {
         super.onGestureAnimationStart(groupedTaskInfo);
         TaskChangerView taskChanger = getTaskChanger();
-        if (taskChanger != null) taskChanger.show(this, false /* settled */);
+        if (taskChanger != null && !mQuickSwitching) taskChanger.show(this, false /* settled */);
     }
 
     @Override
@@ -326,6 +342,7 @@ public class LauncherRecentsView extends RecentsView<QuickstepLauncher, Launcher
             showDesktopApps = true;
         }
         super.onGestureAnimationEnd();
+        mQuickSwitching = false;
         if (endTarget != GestureState.GestureEndTarget.RECENTS
                 && endTarget != GestureState.GestureEndTarget.HOME) {
             TaskChangerView taskChanger = getTaskChanger();
