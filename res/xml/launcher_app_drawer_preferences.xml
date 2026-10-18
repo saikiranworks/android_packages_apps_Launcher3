@@ -95,9 +95,106 @@
         android:summary="%s"
         android:entries="@array/allapps_search_placement_entries"
         android:entryValues="@array/allapps_search_placement_values"
-        android:defaultValue="top"
+        android:defaultValue="bottom"
         android:persistent="true"
         launcher:iconSpaceReserved="false" />
+
+    <androidx.preference.PreferenceCategory
+        android:title="@string/search_prefs_category">
+
+        <SwitchPreferenceCompat
+            android:key="pref_search_settings"
+            android:title="@string/search_pref_settings"
+            android:defaultValue="true"
+            android:persistent="true"
+            launcher:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:key="pref_search_shortcuts"
+            android:title="@string/search_pref_shortcuts"
+            android:defaultValue="true"
+            android:persistent="true"
+            launcher:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:key="pref_search_conversations"
+            android:title="@string/search_pref_conversations"
+            android:defaultValue="true"
+            android:persistent="true"
+            launcher:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:key="pref_search_contacts"
+            android:title="@string/search_pref_contacts"
+            android:defaultValue="false"
+            android:persistent="true"
+            launcher:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:key="pref_search_qs_tiles"
+            android:title="@string/search_pref_qs_tiles"
+            android:defaultValue="true"
+            android:persistent="true"
+            launcher:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:key="pref_search_calculator"
+            android:title="@string/search_pref_calculator"
+            android:defaultValue="true"
+            android:persistent="true"
+            launcher:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:key="pref_search_files"
+            android:title="@string/search_pref_files"
+            android:defaultValue="false"
+            android:persistent="true"
+            launcher:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:key="pref_search_events"
+            android:title="@string/search_pref_events"
+            android:defaultValue="false"
+            android:persistent="true"
+            launcher:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:key="pref_search_actions"
+            android:title="@string/search_pref_actions"
+            android:defaultValue="true"
+            android:persistent="true"
+            launcher:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:key="pref_search_quick_actions"
+            android:title="@string/search_pref_quick_actions"
+            android:defaultValue="true"
+            android:persistent="true"
+            launcher:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:key="pref_search_app_content"
+            android:title="@string/search_pref_app_content"
+            android:defaultValue="true"
+            android:persistent="true"
+            launcher:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:key="pref_search_web_suggestions"
+            android:title="@string/search_pref_web_suggestions"
+            android:summary="@string/search_pref_web_suggestions_summary"
+            android:defaultValue="false"
+            android:persistent="true"
+            launcher:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:key="pref_search_history"
+            android:title="@string/search_pref_history"
+            android:defaultValue="true"
+            android:persistent="true"
+            launcher:iconSpaceReserved="false" />
+
+    </androidx.preference.PreferenceCategory>
 
     <SwitchPreferenceCompat
         android:key="pref_drawer_scrollbar"
