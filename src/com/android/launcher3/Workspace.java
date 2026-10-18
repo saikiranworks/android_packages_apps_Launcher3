@@ -1646,8 +1646,17 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
     private void refreshFirstPageWidget() {
         if (mFirstPagePinnedItem != null && getPageCount() > 0) {
             CellLayout firstPage = (CellLayout) getPageAt(0);
-            if (firstPage != null && mFirstPagePinnedItem.getParent() == firstPage) {
-                firstPage.removeView(mFirstPagePinnedItem);
+            if (firstPage == null) {
+                return;
+            }
+            // CellLayout hosts icons/widgets inside ShortcutAndWidgetContainer, not directly.
+            // Detach through the owning page so its occupied-cell bookkeeping stays correct.
+            ViewParent parent = mFirstPagePinnedItem.getParent();
+            if (parent instanceof ShortcutAndWidgetContainer container
+                    && container.getParent() instanceof CellLayout oldPage) {
+                oldPage.removeView(mFirstPagePinnedItem);
+            } else if (parent instanceof ViewGroup group) {
+                group.removeView(mFirstPagePinnedItem);
             }
 
             int cellHSpan = mLauncher.getDeviceProfile().inv.numSearchContainerColumns;
