@@ -538,8 +538,6 @@ android_library {
     // dependency. See b/208647810 for how this can go wrong.
     static_libs: [
         "SystemUI-statsd",
-        // DeX's dock and Launchpad
-        "PenguinDexLauncher",
         "QuickstepResLib",
         "androidx.room_room-runtime",
         "androidx.room_room-ktx",

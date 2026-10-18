@@ -212,7 +212,6 @@ import com.android.wm.shell.shared.desktopmode.DesktopModeTransitionSource;
 import com.android.wm.shell.shared.desktopmode.DesktopState;
 import com.android.wm.shell.shared.desktopmode.DesktopTaskToFrontReason;
 
-import com.penguin.dex.launcher.DexFeatures;
 
 import java.io.PrintWriter;
 import java.util.Collections;
@@ -989,7 +988,8 @@ public class TaskbarActivityContext extends BaseTaskbarContext {
 
     /** Whether this taskbar is a DeX desktop's, drawn as a floating dock. */
     public boolean isDexDock() {
-        return isDexDesktop() && DexFeatures.dock(this);
+        // PenguinDex is not part of this build.
+        return false;
     }
 
     public boolean isGestureNav() {

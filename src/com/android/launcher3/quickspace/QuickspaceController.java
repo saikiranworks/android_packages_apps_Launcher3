@@ -25,7 +25,7 @@ import android.graphics.drawable.Drawable;
 import android.media.MediaMetadata;
 import android.os.Handler;
 import android.util.Log;
-import com.android.internal.util.custom.OmniJawsClient;
+import com.android.internal.util.crdroid.OmniJawsClient;
 import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.R;
 import com.android.launcher3.util.MSMHProxy;
