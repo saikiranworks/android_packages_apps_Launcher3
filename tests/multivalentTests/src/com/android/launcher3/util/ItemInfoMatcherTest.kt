@@ -18,7 +18,9 @@ package com.android.launcher3.util
 
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.UserInfo
 import android.os.UserHandle
+import android.os.UserManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.launcher3.LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT
@@ -30,6 +32,7 @@ import com.android.launcher3.util.ItemInfoMatcher.ofShortcutKeys
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.kotlin.mock
 import org.mockito.kotlin.spy
 import org.mockito.kotlin.whenever
 
@@ -47,6 +50,23 @@ class ItemInfoMatcherTest {
         val actualResults = itemInfoStream.filter(predicate).toList()
 
         assertThat(actualResults).containsExactly(expectedItemInfo)
+    }
+
+    @Test
+    fun `getCloneUserId returns -1 when UserManager is null`() {
+        assertThat(ItemInfoMatcher.getCloneUserId(null)).isEqualTo(-1)
+    }
+
+    @Test
+    fun `getCloneUserId skips profiles whose UserInfo is null`() {
+        val userManager = mock<UserManager>()
+        whenever(userManager.userProfiles).thenReturn(listOf(UserHandle(10), UserHandle(11)))
+        whenever(userManager.getUserInfo(10)).thenReturn(null)
+        val cloneInfo = mock<UserInfo>()
+        whenever(cloneInfo.isCloneProfile).thenReturn(true)
+        whenever(userManager.getUserInfo(11)).thenReturn(cloneInfo)
+
+        assertThat(ItemInfoMatcher.getCloneUserId(userManager)).isEqualTo(11)
     }
 
     @Test

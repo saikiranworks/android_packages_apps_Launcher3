@@ -17,6 +17,7 @@
 package com.android.launcher3.util;
 
 import android.content.ComponentName;
+import android.content.pm.UserInfo;
 import android.os.UserHandle;
 import android.os.UserManager;
 
@@ -57,8 +58,14 @@ public abstract class ItemInfoMatcher {
     }
 
     public static int getCloneUserId(UserManager userManager) {
+        if (userManager == null) {
+            return -1;
+        }
         for (UserHandle userHandle : userManager.getUserProfiles()) {
-            if (userManager.getUserInfo(userHandle.getIdentifier()).isCloneProfile()) {
+            // getUserInfo() can return null when a profile is removed concurrently;
+            // treat that profile as not-a-clone instead of crashing the drawer.
+            UserInfo info = userManager.getUserInfo(userHandle.getIdentifier());
+            if (info != null && info.isCloneProfile()) {
                 return userHandle.getIdentifier();
             }
         }
