@@ -1888,7 +1888,8 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                     mHeader.setSearchListBottomClip(height > 0
                             ? Math.max(0, height - underSearchBar) : Integer.MAX_VALUE);
                 }
-                boolean bottomSearch = !isSearchBarAtTop()
+                // App Library already supplies its own bottom scrim and clipping.
+                boolean bottomSearch = !isAppLibrary() && !isSearchBarAtTop()
                         && mSearchContainer != null && mSearchContainer.getVisibility() == VISIBLE;
                 if (bottomSearch) {
                     bottomOffset += getResources().getDimensionPixelSize(
