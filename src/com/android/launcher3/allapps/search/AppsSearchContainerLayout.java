@@ -47,7 +47,6 @@ import com.android.launcher3.allapps.AllAppsStore;
 import com.android.launcher3.allapps.BaseAllAppsAdapter.AdapterItem;
 import com.android.launcher3.allapps.PrivateProfileManager;
 import com.android.launcher3.allapps.SearchUiManager;
-import com.android.launcher3.search.SearchAlgorithm;
 import com.android.launcher3.search.SearchCallback;
 import com.android.launcher3.search.universal.UniversalSearchAlgorithm;
 import com.android.launcher3.statemanager.StateManager.StateListener;
@@ -179,20 +178,21 @@ public class AppsSearchContainerLayout extends ExtendedEditText
             setMinHeight(getResources().getDimensionPixelSize(
                     R.dimen.all_apps_floating_search_height));
         }
-        // The drawer searches its apps, as iOS's App Library does; everything else is Spotlight's.
-        SearchAlgorithm<AdapterItem> algorithm;
-        if (LauncherPrefs.isAppLibrary(getContext())) {
-            UniversalSearchAlgorithm universal =
-                    new UniversalSearchAlgorithm(getContext(), mLauncher.getUiExecutor());
-            universal.setQueryHandler(query -> {
-                setText(query);
-                setSelection(query.length());
-            });
-            algorithm = universal;
-        } else {
-            algorithm = new DefaultAppSearchAlgorithm(getContext(), mLauncher.getUiExecutor());
-        }
+        // Keep the same providers in the normal drawer, taskbar drawer and App Library.
+        UniversalSearchAlgorithm algorithm =
+                new UniversalSearchAlgorithm(getContext(), mLauncher.getUiExecutor());
+        algorithm.setQueryHandler(query -> {
+            setText(query);
+            setSelection(query.length());
+        });
         mSearchBarController.initialize(algorithm, this, mLauncher, this);
+        android.graphics.drawable.PaintDrawable background =
+                new android.graphics.drawable.PaintDrawable(
+                        androidx.core.graphics.ColorUtils.setAlphaComponent(
+                                getCurrentTextColor(), 0x33));
+        background.setCornerRadius(getResources().getDimension(
+                R.dimen.rounded_button_radius));
+        setBackground(background);
     }
 
     @Override

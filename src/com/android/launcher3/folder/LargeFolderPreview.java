@@ -182,7 +182,7 @@ public class LargeFolderPreview {
                 mLargeItems.add(item);
                 mLargeDrawables.add(newIcon(item));
                 requestHighResIfNeeded(item);
-            } else if (mClusterItems.size() < MAX_NUM_ITEMS_IN_PREVIEW) {
+            } else if (mClusterItems.size() < 4) {
                 Drawable d = newIcon(item);
                 if (d != null) {
                     mClusterItems.add(item);

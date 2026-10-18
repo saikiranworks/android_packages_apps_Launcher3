@@ -1888,6 +1888,16 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                     mHeader.setSearchListBottomClip(height > 0
                             ? Math.max(0, height - underSearchBar) : Integer.MAX_VALUE);
                 }
+                boolean bottomSearch = !isSearchBarAtTop()
+                        && mSearchContainer != null && mSearchContainer.getVisibility() == VISIBLE;
+                if (bottomSearch) {
+                    bottomOffset += getResources().getDimensionPixelSize(
+                            R.dimen.all_apps_bottom_search_gap);
+                }
+                mRecyclerView.setClipToPadding(bottomSearch);
+                mRecyclerView.setVerticalFadingEdgeEnabled(bottomSearch);
+                mRecyclerView.setFadingEdgeLength(getResources().getDimensionPixelSize(
+                        R.dimen.all_apps_bottom_search_fade));
                 mRecyclerView.setPadding(mPadding.left, mPadding.top, mPadding.right,
                         mPadding.bottom + bottomOffset);
             }

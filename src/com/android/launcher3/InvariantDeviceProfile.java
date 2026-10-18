@@ -319,18 +319,19 @@ public class InvariantDeviceProfile {
                     ENABLE_TWOLINE_ALLAPPS_TOGGLE.getSharedPrefKey().equals(key) ||
                     ROW_HEIGHT.getSharedPrefKey().equals(key) ||
                     SHOW_HOTSEAT_QSB.getSharedPrefKey().equals(key) ||
+                    LauncherPrefs.DOCK_SEARCH_PROVIDER.getSharedPrefKey().equals(key) ||
                     PREF_ICON_SHAPE.getSharedPrefKey().equals(key)) {
                 onConfigChanged();
             }
         };
         prefs.addListener(prefListener, FIXED_LANDSCAPE_MODE, ALLAPPS_THEMED_ICONS,
                 SHOW_DESKTOP_LABELS, SHOW_DRAWER_LABELS, ICON_SIZE, FONT_SIZE,
-                ENABLE_TWOLINE_ALLAPPS_TOGGLE, ROW_HEIGHT, SHOW_HOTSEAT_QSB,
+                ENABLE_TWOLINE_ALLAPPS_TOGGLE, ROW_HEIGHT, SHOW_HOTSEAT_QSB, LauncherPrefs.DOCK_SEARCH_PROVIDER,
                 PREF_ICON_SHAPE);
         lifeCycle.addCloseable(() -> prefs.removeListener(prefListener,
                 FIXED_LANDSCAPE_MODE, ALLAPPS_THEMED_ICONS,
                 SHOW_DESKTOP_LABELS, SHOW_DRAWER_LABELS, ICON_SIZE, FONT_SIZE,
-                ENABLE_TWOLINE_ALLAPPS_TOGGLE, ROW_HEIGHT, SHOW_HOTSEAT_QSB,
+                ENABLE_TWOLINE_ALLAPPS_TOGGLE, ROW_HEIGHT, SHOW_HOTSEAT_QSB, LauncherPrefs.DOCK_SEARCH_PROVIDER,
                 PREF_ICON_SHAPE));
 
         SharedPreferences.OnSharedPreferenceChangeListener iconPackListener = (sp, key) -> {

@@ -95,6 +95,11 @@ public class AllAppsRecyclerView extends FastScrollRecyclerView {
         mFastScrollHelper = new AllAppsFastScrollHelper(this);
     }
 
+    @Override
+    protected float getTopFadingEdgeStrength() {
+        return 0f;
+    }
+
     /**
      * Sets the list of apps in this view, used to determine the fastscroll position.
      */

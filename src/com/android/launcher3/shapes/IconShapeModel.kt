@@ -22,7 +22,7 @@ data class IconShapeModel(
     val key: String,
     @StringRes val titleId: Int,
     val pathString: String,
-    val folderRadiusRatio: Float = 1f,
+    val folderRadiusRatio: Float = 0.28f,
     val shapeRadius: Float = DEFAULT_ICON_RADIUS,
 ) {
     companion object {

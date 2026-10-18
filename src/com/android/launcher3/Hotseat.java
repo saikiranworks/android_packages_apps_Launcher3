@@ -286,7 +286,8 @@ public class Hotseat extends CellLayout implements Insettable {
         DeviceProfile grid = mActivity.getDeviceProfile();
 
         mSearchPill.setVisibility(grid.isVerticalBarLayout()
-                || grid.getDeviceProperties().getTaskbarConfiguration().isTaskbarPresent()
+                || !LauncherPrefs.SHOW_HOTSEAT_QSB.get(getContext())
+                || !"launcher".equals(LauncherPrefs.DOCK_SEARCH_PROVIDER.get(getContext()))
                 ? View.GONE : View.VISIBLE);
         if (grid.isVerticalBarLayout()) {
             if (mQsb != null) mQsb.setVisibility(View.GONE);

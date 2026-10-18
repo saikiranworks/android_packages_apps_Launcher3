@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="all_apps_bottom_search_gap">8dp</dimen>
+    <dimen name="all_apps_bottom_search_fade">48dp</dimen>
+</resources>

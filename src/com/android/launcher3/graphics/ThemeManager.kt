@@ -188,7 +188,7 @@ constructor(
                 pickBestShape(iconMask)
             }
 
-        val folderRadius = shapeModel?.folderRadiusRatio ?: 1f
+        val folderRadius = shapeModel?.folderRadiusRatio ?: 0.28f
         val folderShape =
             if (oldState != null && oldState.folderRadius == folderRadius) {
                 oldState.folderShape

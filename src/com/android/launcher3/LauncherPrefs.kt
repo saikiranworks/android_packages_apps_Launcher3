@@ -454,6 +454,7 @@ constructor(@ApplicationContext private val encryptedContext: Context) {
         @JvmField val SELECT_TIP_SEEN = backedUpItem("launcher.select_tip_seen", false)
 
         @JvmField val SHOW_HOTSEAT_QSB = backedUpItem("pref_show_hotseat_qsb", true)
+        @JvmField val DOCK_SEARCH_PROVIDER = backedUpItem("pref_dock_search_provider", "launcher")
 
         @JvmField val DOCK_AI_MUSIC_SEARCH = backedUpItem("pref_dock_ai_music_search", false)
 
@@ -466,7 +467,8 @@ constructor(@ApplicationContext private val encryptedContext: Context) {
             }
 
             return try {
-                get(context).get(SHOW_HOTSEAT_QSB)
+                get(context).get(SHOW_HOTSEAT_QSB) &&
+                    get(context).get(DOCK_SEARCH_PROVIDER) == "google"
             } catch (ignored: IllegalStateException) {
                 true
             }
