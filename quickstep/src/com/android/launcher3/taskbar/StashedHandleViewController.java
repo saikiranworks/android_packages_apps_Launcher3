@@ -548,7 +548,7 @@ public class StashedHandleViewController implements TaskbarControllers.LoggableT
                 && !activity.isThreeButtonNav()
                 && SettingsCache.INSTANCE.get(activity).getValue(NAVIGATION_BAR_HINT_URI)
                 && Settings.System.getIntForUser(activity.getContentResolver(),
-                        Settings.System.GESTURE_NAVBAR_AUTO_HIDE, 0,
+                        TaskbarManagerImpl.GESTURE_NAVBAR_AUTO_HIDE, 0,
                         UserHandle.USER_CURRENT) == 1;
     }
 

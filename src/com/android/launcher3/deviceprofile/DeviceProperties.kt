@@ -19,7 +19,7 @@ package com.android.launcher3.deviceprofile
 import android.content.Context
 import android.graphics.Rect
 import com.android.launcher3.display.LauncherDisplayInfo
-import com.android.launcher3.taskbar.TaskbarManagerImpl.ENABLE_TASKBAR_URI
+import com.android.launcher3.taskbar.TaskbarManagerImpl.isTaskbarEnabledBySetting
 import com.android.launcher3.util.SettingsCache
 import com.android.launcher3.util.WindowBounds
 import com.android.wm.shell.Flags
@@ -75,9 +75,7 @@ data class DeviceProperties(
             val availableWidthPx = windowBounds.availableSize.x
             val availableHeightPx = windowBounds.availableSize.y
             val enableTaskbar = context?.let {
-                SettingsCache.INSTANCE.get(it).getIntValue(
-                    ENABLE_TASKBAR_URI, if (isLargeScreen) 1 else 0
-                ) != 0
+                isTaskbarEnabledBySetting(it, isLargeScreen)
             } ?: (Flags.enableTinyTaskbar() || isLargeScreen)
             // A DeX desktop always has its taskbar; the setting is the phone screen's.
             val allowTaskbar =

@@ -51,6 +51,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Trace;
 import android.provider.Settings;
+
+import lineageos.providers.LineageSettings;
 import android.util.Log;
 import android.view.Display;
 import android.view.View;
@@ -139,11 +141,25 @@ public class TaskbarManagerImpl {
     private static final Uri NAV_BAR_KIDS_MODE = Settings.Secure.getUriFor(
             Settings.Secure.NAV_BAR_KIDS_MODE);
 
-    public static final Uri ENABLE_TASKBAR_URI = Settings.System.getUriFor(
-            Settings.System.ENABLE_TASKBAR);
+    public static final int TASKBAR_SETTING_UNSET = -1;
+    // Optional Penguin setting: absent on crDroid, so auto-hide remains off by default.
+    public static final String GESTURE_NAVBAR_AUTO_HIDE = "gesture_navbar_auto_hide";
 
-    public static final Uri NAVIGATION_BAR_HINT_URI = Settings.Secure.getUriFor(
-            Settings.Secure.NAVIGATION_BAR_HINT);
+    public static int resolveTaskbarEnabled(int rawValue, boolean isLargeScreen) {
+        return rawValue == TASKBAR_SETTING_UNSET ? (isLargeScreen ? 1 : 0)
+                : (rawValue != 0 ? 1 : 0);
+    }
+
+    public static boolean isTaskbarEnabledBySetting(Context context, boolean isLargeScreen) {
+        return resolveTaskbarEnabled(SettingsCache.INSTANCE.get(context).getIntValue(
+                ENABLE_TASKBAR_URI, TASKBAR_SETTING_UNSET), isLargeScreen) != 0;
+    }
+
+    public static final Uri ENABLE_TASKBAR_URI = LineageSettings.System.getUriFor(
+            LineageSettings.System.ENABLE_TASKBAR);
+
+    public static final Uri NAVIGATION_BAR_HINT_URI = LineageSettings.System.getUriFor(
+            LineageSettings.System.NAVIGATION_BAR_HINT);
 
     public static final Uri GESTURE_NAVBAR_LENGTH_MODE_URI = Settings.System.getUriFor(
             Settings.System.GESTURE_NAVBAR_LENGTH_MODE);
@@ -152,7 +168,7 @@ public class TaskbarManagerImpl {
             Settings.System.GESTURE_NAVBAR_HEIGHT_MODE);
 
     public static final Uri GESTURE_NAVBAR_AUTO_HIDE_URI = Settings.System.getUriFor(
-            Settings.System.GESTURE_NAVBAR_AUTO_HIDE);
+            GESTURE_NAVBAR_AUTO_HIDE);
 
     public static final Uri NAV_BAR_IME = Settings.Secure.getUriFor(
             "sysui_show_nav_bar_ime");
@@ -367,9 +383,9 @@ public class TaskbarManagerImpl {
                 v -> onSettingChanged(v, TaskbarActivityContext::isInKidsMode));
         cleanupTasks.addCloseable(getTaskbarUiThread(), navBarKidsModeSafeCloseable);
 
-        var enableTaskbarSafeCloseable = settingsCache.getListenableRef(ENABLE_TASKBAR_URI).forEach(
-                getTaskbarUiThread(),
-                v -> onTaskbarChanged(v, TaskbarActivityContext::isTaskbarEnabled));
+        var enableTaskbarSafeCloseable = settingsCache.getIntListenableRef(
+                ENABLE_TASKBAR_URI, TASKBAR_SETTING_UNSET).forEach(
+                getTaskbarUiThread(), this::onEnableTaskbarChanged);
         cleanupTasks.addCloseable(getTaskbarUiThread(), enableTaskbarSafeCloseable);
 
         var enableNavbarHintSafeCloseable = settingsCache.getListenableRef(NAVIGATION_BAR_HINT_URI)
@@ -530,6 +546,18 @@ public class TaskbarManagerImpl {
             if (activity != null && oldValue.apply(activity) != newValue) {
                 resource.debugMsg("onSettingChanged");
                 recreateTaskbarForDisplay(resource, 0, "onSettingChanged");
+            }
+        });
+        return Unit.INSTANCE;
+    }
+
+    private Unit onEnableTaskbarChanged(int rawValue) {
+        mResources.forEach(resource -> {
+            var activity = resource.getTaskbar();
+            if (activity != null && activity.isTaskbarEnabled() != (resolveTaskbarEnabled(
+                    rawValue, activity.getDeviceProfile().getDeviceProperties().isLargeScreen()) != 0)) {
+                resource.debugMsg("Taskbar setting changed! Restarting process!");
+                System.exit(0);
             }
         });
         return Unit.INSTANCE;

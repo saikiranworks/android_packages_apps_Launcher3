@@ -342,6 +342,7 @@ android_library {
         "cuebarlib",
         "libGoogleFeed",
         "SettingsLib",
+        "org.lineageos.platform",
     ],
     manifest: "AndroidManifest-common.xml",
     sdk_version: "current",

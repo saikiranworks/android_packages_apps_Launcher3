@@ -78,6 +78,8 @@ import android.os.IRemoteCallback;
 import android.os.Process;
 import android.os.Trace;
 import android.provider.Settings;
+
+import lineageos.providers.LineageSettings;
 import android.provider.Settings.Secure;
 import android.util.Log;
 import android.util.Pair;
@@ -233,10 +235,10 @@ public class TaskbarActivityContext extends BaseTaskbarContext {
 
     private static final Uri URI_USER_SETUP_COMPLETE = Secure.getUriFor(Secure.USER_SETUP_COMPLETE);
     private static final Uri URI_NAV_BAR_KIDS_MODE = Secure.getUriFor(Secure.NAV_BAR_KIDS_MODE);
-    private static final Uri URI_ENABLE_TASKBAR = Settings.System.getUriFor(
-            Settings.System.ENABLE_TASKBAR);
-    private static final Uri URI_NAVIGATION_BAR_HINT = Settings.Secure.getUriFor(
-            Settings.Secure.NAVIGATION_BAR_HINT);
+    private static final Uri URI_ENABLE_TASKBAR = LineageSettings.System.getUriFor(
+            LineageSettings.System.ENABLE_TASKBAR);
+    private static final Uri URI_NAVIGATION_BAR_HINT = LineageSettings.System.getUriFor(
+            LineageSettings.System.NAVIGATION_BAR_HINT);
     private static final Uri URI_NAV_BAR_IME = Secure.getUriFor("sysui_show_nav_bar_ime");
 
     private static final String TAG = "TaskbarActivityContext";
@@ -359,7 +361,8 @@ public class TaskbarActivityContext extends BaseTaskbarContext {
         SettingsCache settingsCache = SettingsCache.INSTANCE.get(this);
         mIsUserSetupComplete = settingsCache.getValue(URI_USER_SETUP_COMPLETE);
         mIsNavBarKidsMode = settingsCache.getValue(URI_NAV_BAR_KIDS_MODE);
-        mIsTaskbarEnabled = settingsCache.getValue(URI_ENABLE_TASKBAR);
+        mIsTaskbarEnabled = TaskbarManagerImpl.isTaskbarEnabledBySetting(this,
+                launcherDp.getDeviceProperties().isLargeScreen());
         mIsNavbarHintEnabled = settingsCache.getValue(URI_NAVIGATION_BAR_HINT);
         mImeDrawsImeNavBar = Settings.Secure.getInt(
                 getContentResolver(), URI_NAV_BAR_IME.getLastPathSegment(), 1) != 0;
@@ -697,8 +700,8 @@ public class TaskbarActivityContext extends BaseTaskbarContext {
             return false;
         }
         if (!mDeviceProfile.getDeviceProperties().isPhone() &&
-                !(SettingsCache.INSTANCE.get(this).getIntValue(ENABLE_TASKBAR_URI,
-                mDeviceProfile.getDeviceProperties().isLargeScreen() ? 1 : 0) != 0)) {
+                !TaskbarManagerImpl.isTaskbarEnabledBySetting(this,
+                mDeviceProfile.getDeviceProperties().isLargeScreen())) {
             return true;
         }
         return isDeviceProfileForPhoneMode(mDeviceProfile);
