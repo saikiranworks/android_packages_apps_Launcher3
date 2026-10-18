@@ -266,6 +266,10 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
 
         mAllAppsButtonContainer = (TaskbarAllAppsButtonContainer) inflate(
                 R.layout.taskbar_all_apps_button_container);
+        // BubbleTextView centers its drawable during measurement. Measure with the same square
+        // bounds used by onLayout instead of the inherited match-parent taskbar height.
+        mAllAppsButtonContainer.setLayoutParams(
+                new TaskbarLayoutParams(mIconTouchSize, mIconTouchSize));
         mAllAppsButtonTranslationOffset = (int) getResources().getDimension(
                 mAllAppsButtonContainer.getAllAppsButtonTranslationXOffset(
                         mActivityContext.isTransientTaskbar()));
@@ -274,6 +278,8 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
 
         mTaskbarDividerContainer = (TaskbarDividerContainer) inflate(
                 R.layout.taskbar_divider_button_container);
+        mTaskbarDividerContainer.setLayoutParams(
+                new TaskbarLayoutParams(mIconTouchSize, mIconTouchSize));
 
         if (ENABLE_TASKBAR_OVERFLOW.isTrue()) {
             mTaskbarRecentsOverflowView = TaskbarOverflowView.inflateIcon(OverflowType.RECENTS,
