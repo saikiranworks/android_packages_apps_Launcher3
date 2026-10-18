@@ -40,6 +40,14 @@ public interface SearchAlgorithm<T> {
     void cancel(boolean interruptActiveRequests);
 
     /**
+     * Whether an empty query has something to show (e.g. recent searches), so focusing the empty
+     * search box should run a search.
+     */
+    default boolean hasEmptyQueryResults() {
+        return false;
+    }
+
+    /**
      * Cleans up after search is no longer needed.
      */
     default void destroy() {};

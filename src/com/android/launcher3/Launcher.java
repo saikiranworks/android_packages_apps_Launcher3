@@ -1098,10 +1098,26 @@ public class Launcher extends StatefulActivity<LauncherState>
             getAppsView().reset(false /* animate */, true /* clearScrim */);
             getAllAppsExitEvent().ifPresent(getStatsLogManager().logger()::log);
             mAllAppsSessionLogId = null;
-        } else if (ALL_APPS.equals(state) && DRAWER_OPEN_KEYBOARD.get(this)) {
+        } else if (ALL_APPS.equals(state)
+                && (DRAWER_OPEN_KEYBOARD.get(this) || mFocusSearchOnAllApps)) {
             getAppsView().getSearchUiManager().focusSearchField();
         }
+        mFocusSearchOnAllApps = false;
         setTitle(state);
+    }
+
+    /** Set by the home search pill so the drawer opens straight into search. */
+    private boolean mFocusSearchOnAllApps;
+
+    /** Opens the app drawer with the search field focused (home search pill). */
+    public void openSearchFromHome() {
+        AbstractFloatingView.closeAllOpenViews(this);
+        if (getStateManager().getState() == ALL_APPS) {
+            getAppsView().getSearchUiManager().focusSearchField();
+            return;
+        }
+        mFocusSearchOnAllApps = true;
+        getStateManager().goToState(ALL_APPS, true);
     }
 
     protected void setTitle(@NonNull LauncherState state) {

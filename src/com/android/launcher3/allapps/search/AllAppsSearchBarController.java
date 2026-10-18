@@ -28,10 +28,15 @@ import android.widget.TextView.OnEditorActionListener;
 
 import com.android.launcher3.ExtendedEditText;
 import com.android.launcher3.Utilities;
+import com.android.launcher3.allapps.BaseAllAppsAdapter;
 import com.android.launcher3.allapps.BaseAllAppsAdapter.AdapterItem;
 import com.android.launcher3.search.SearchAlgorithm;
 import com.android.launcher3.search.SearchCallback;
+import com.android.launcher3.search.universal.SearchHistory;
+import com.android.launcher3.search.universal.UniversalSearchResults;
 import com.android.launcher3.views.ActivityContext;
+
+import java.util.List;
 
 /**
  * An interface to a search box that AllApps can command.
@@ -66,6 +71,14 @@ public class AllAppsSearchBarController
         mInput.setOnEditorActionListener(this);
         mInput.setOnBackKeyListener(this);
         mSearchAlgorithm = searchAlgorithm;
+        // Show recent searches as soon as the empty box gets focus.
+        mInput.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus && mInput.getEditableText().length() == 0
+                    && mSearchAlgorithm.hasEmptyQueryResults()) {
+                mSearchAlgorithm.cancel(false);
+                mSearchAlgorithm.doSearch("", mTextConversions, mCallback);
+            }
+        });
     }
 
     @Override
@@ -99,7 +112,11 @@ public class AllAppsSearchBarController
         mQuery = s.toString();
         if (mQuery.isEmpty()) {
             mSearchAlgorithm.cancel(true);
-            mCallback.clearSearchResult();
+            if (mSearchAlgorithm.hasEmptyQueryResults() && mInput.hasFocus()) {
+                mSearchAlgorithm.doSearch("", mTextConversions, mCallback);
+            } else {
+                mCallback.clearSearchResult();
+            }
         } else {
             mSearchAlgorithm.cancel(false);
             mSearchAlgorithm.doSearch(mQuery, mTextConversions, mCallback);
@@ -132,8 +149,30 @@ public class AllAppsSearchBarController
                 return false;
             }
 
-            // selectFocusedView should return SearchTargetEvent that is passed onto onClick
-            return mLauncher.getAppsView().getMainAdapterProvider().performGoogleSearch(v, query);
+            // Open the highlighted or first result; fall back to a web search.
+            return mLauncher.getAppsView().getMainAdapterProvider().launchHighlightedItem()
+                    || launchTopResult()
+                    || mLauncher.getAppsView().getMainAdapterProvider()
+                            .performGoogleSearch(v, query);
+        }
+        return false;
+    }
+
+    private boolean launchTopResult() {
+        if (TextUtils.isEmpty(mQuery)) {
+            return false;
+        }
+        List<AdapterItem> items = mLauncher.getAppsView().getSearchResultList().getAdapterItems();
+        for (AdapterItem item : items) {
+            if (item.searchResult != null) {
+                return UniversalSearchResults.launch(mLauncher, mInput, item.searchResult);
+            }
+            if (item.itemInfo != null && BaseAllAppsAdapter.isIconViewType(item.viewType)) {
+                SearchHistory.recordLaunch(mInput.getContext(), SearchHistory.appKey(
+                        item.itemInfo.getTargetComponent(), item.itemInfo.user));
+                return mLauncher.startActivitySafely(
+                        mInput, item.itemInfo.getIntent(), item.itemInfo) != null;
+            }
         }
         return false;
     }

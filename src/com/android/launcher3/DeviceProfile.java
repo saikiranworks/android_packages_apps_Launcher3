@@ -294,7 +294,7 @@ public class DeviceProfile {
         memInfoHeight = inv.getLauncherPrefs().get(LauncherPrefs.RECENTS_MEMINFO) ? res.getDimensionPixelSize(
                 R.dimen.meminfo_claimed_height) : 0;
 
-        isQsbVisible = Utilities.showQSB(context);
+        isQsbVisible = Utilities.showHomeSearch(context);
 
         int qsbHeight = isQsbVisible ? res.getDimensionPixelSize(R.dimen.qsb_widget_height) : 0;
 

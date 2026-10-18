@@ -839,6 +839,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
         removeCustomRules(rvContainer);
         removeCustomRules(getSearchRecyclerView());
+        applyBottomSearchFade(false);
         if (isSearchBarHidden()) {
             mSearchContainer.setVisibility(View.GONE);
             alignParentTop(rvContainer, showTabs);
@@ -852,6 +853,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                 layoutSearchContainerBottom();
                 layoutAboveSearchContainer(rvContainer, showTabs);
                 layoutAboveSearchContainer(getSearchRecyclerView(), /* tabs= */ false);
+                applyBottomSearchFade(true);
             } else {
                 layoutSearchContainerTop();
                 layoutBelowSearchContainer(rvContainer, showTabs);
@@ -1138,8 +1140,22 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                             R.dimen.all_apps_tabs_margin_top);
         }
         layoutParams.topMargin = topMargin;
+        // Leave a small gap above the bottom search bar so the last row is not cut by the bar;
+        // the list fades out into that gap (ColorOS style).
         layoutParams.bottomMargin = getContext().getResources().getDimensionPixelSize(
-                R.dimen.all_apps_search_bar_bottom_adjustment);
+                R.dimen.all_apps_bottom_search_gap);
+    }
+
+    /** Fades the bottom edge of the app lists when the search bar sits below them. */
+    private void applyBottomSearchFade(boolean enabled) {
+        int length = getResources().getDimensionPixelSize(R.dimen.all_apps_bottom_search_fade);
+        for (AdapterHolder holder : mAH) {
+            if (holder == null || holder.mRecyclerView == null) {
+                continue;
+            }
+            holder.mRecyclerView.setVerticalFadingEdgeEnabled(enabled);
+            holder.mRecyclerView.setFadingEdgeLength(length);
+        }
     }
 
     private void layoutBelowSearchContainer(View v, boolean includeTabsMargin) {

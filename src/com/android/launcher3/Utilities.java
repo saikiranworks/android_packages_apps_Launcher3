@@ -991,8 +991,21 @@ public final class Utilities {
         return isPackageInstalled(context, GSA_PACKAGE);
     }
 
+    /** Whether the Google search bar is shown (in the dock and taskbar). */
     public static boolean showQSB(Context context) {
-        return isGSAEnabled(context) && isQSBEnabled(context);
+        return isGSAEnabled(context) && isQSBEnabled(context)
+                && "google".equals(LauncherPrefs.DOCK_SEARCH_PROVIDER.get(context));
+    }
+
+    /** Whether the dock shows the launcher's own search pill instead of the Google bar. */
+    public static boolean showHomeSearchPill(Context context) {
+        return isQSBEnabled(context)
+                && !"google".equals(LauncherPrefs.DOCK_SEARCH_PROVIDER.get(context));
+    }
+
+    /** Whether the dock reserves its search slot, for either the pill or the Google bar. */
+    public static boolean showHomeSearch(Context context) {
+        return showQSB(context) || showHomeSearchPill(context);
     }
 
     private static boolean isQSBEnabled(Context context) {

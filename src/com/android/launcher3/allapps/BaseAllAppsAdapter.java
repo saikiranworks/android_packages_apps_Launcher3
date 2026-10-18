@@ -45,8 +45,14 @@ import com.android.launcher3.R;
 import com.android.launcher3.allapps.search.SearchAdapterProvider;
 import com.android.launcher3.model.data.AppInfo;
 import com.android.launcher3.popup.PopupContainerWithArrow;
+import com.android.launcher3.search.universal.FuzzyMatcher;
+import com.android.launcher3.search.universal.SearchHistory;
+import com.android.launcher3.search.universal.UniversalSearchResult;
+import com.android.launcher3.search.universal.UniversalSearchResults;
 import com.android.launcher3.touch.CustomActionsListener;
 import com.android.launcher3.views.ActivityContext;
+
+import java.util.List;
 
 /**
  * Adapter for all the apps.
@@ -69,7 +75,13 @@ public abstract class BaseAllAppsAdapter
     public static final int VIEW_TYPE_PRIVATE_SPACE_SYS_APPS_DIVIDER = 1 << 7;
     public static final int VIEW_TYPE_BOTTOM_VIEW_TO_SCROLL_TO = 1 << 8;
     public static final int VIEW_TYPE_PRIVATE_SPACE_APP_ICON = 1 << 9;
-    public static final int NEXT_ID = 10;
+    // Universal search rows (ported from PenguinOS Launcher3).
+    public static final int VIEW_TYPE_SEARCH_RESULT_ROW = 1 << 10;
+    public static final int VIEW_TYPE_SEARCH_SECTION_HEADER = 1 << 11;
+    public static final int VIEW_TYPE_SEARCH_TOP_RESULT = 1 << 12;
+    public static final int VIEW_TYPE_SEARCH_FILTERS = 1 << 13;
+    public static final int VIEW_TYPE_SEARCH_THUMBNAILS = 1 << 14;
+    public static final int NEXT_ID = 15;
 
     // Common view type masks
     public static final int VIEW_TYPE_MASK_DIVIDER = VIEW_TYPE_ALL_APPS_DIVIDER;
@@ -111,8 +123,44 @@ public abstract class BaseAllAppsAdapter
         public AppInfo itemInfo = null;
         // Private App Decorator
         public SectionDecorationInfo decorationInfo = null;
+        // Result from a non-app universal search source
+        public UniversalSearchResult searchResult = null;
+        // Source id for a universal search section header
+        public int searchSection = -1;
+        public UniversalSearchResults.Filters searchFilters = null;
+        public List<UniversalSearchResult> searchThumbnails = null;
         public AdapterItem(int viewType) {
             this.viewType = viewType;
+        }
+
+        public static AdapterItem asSearchResult(UniversalSearchResult result) {
+            AdapterItem item = new AdapterItem(VIEW_TYPE_SEARCH_RESULT_ROW);
+            item.searchResult = result;
+            return item;
+        }
+
+        public static AdapterItem asSearchTopResult(UniversalSearchResult result) {
+            AdapterItem item = new AdapterItem(VIEW_TYPE_SEARCH_TOP_RESULT);
+            item.searchResult = result;
+            return item;
+        }
+
+        public static AdapterItem asSearchThumbnails(List<UniversalSearchResult> results) {
+            AdapterItem item = new AdapterItem(VIEW_TYPE_SEARCH_THUMBNAILS);
+            item.searchThumbnails = results;
+            return item;
+        }
+
+        public static AdapterItem asSearchFilters(UniversalSearchResults.Filters filters) {
+            AdapterItem item = new AdapterItem(VIEW_TYPE_SEARCH_FILTERS);
+            item.searchFilters = filters;
+            return item;
+        }
+
+        public static AdapterItem asSearchSection(int source) {
+            AdapterItem item = new AdapterItem(VIEW_TYPE_SEARCH_SECTION_HEADER);
+            item.searchSection = source;
+            return item;
         }
 
         /**
@@ -153,6 +201,15 @@ public abstract class BaseAllAppsAdapter
                         && java.util.Objects.equals(itemInfo.getTargetComponent(),
                                 other.itemInfo.getTargetComponent());
             }
+            if (viewType == VIEW_TYPE_SEARCH_SECTION_HEADER) {
+                return searchSection == other.searchSection;
+            }
+            if (viewType == VIEW_TYPE_SEARCH_RESULT_ROW
+                    || viewType == VIEW_TYPE_SEARCH_TOP_RESULT) {
+                return searchResult != null && other.searchResult != null
+                        && searchResult.source == other.searchResult.source
+                        && java.util.Objects.equals(searchResult.id, other.searchResult.id);
+            }
             return true;
         }
 
@@ -161,6 +218,12 @@ public abstract class BaseAllAppsAdapter
          * as well. Returning true will prevent redrawing of thee item.
          */
         public boolean isContentSame(AdapterItem other) {
+            if (viewType == VIEW_TYPE_SEARCH_RESULT_ROW || viewType == VIEW_TYPE_SEARCH_TOP_RESULT
+                    || viewType == VIEW_TYPE_SEARCH_FILTERS
+                    || viewType == VIEW_TYPE_SEARCH_THUMBNAILS) {
+                // Titles, subtitles and live state change per query even for the same id.
+                return false;
+            }
             return itemInfo == null && other.itemInfo == null;
         }
 
@@ -265,6 +328,21 @@ public abstract class BaseAllAppsAdapter
                         R.layout.private_space_header, parent, false));
             case VIEW_TYPE_BOTTOM_VIEW_TO_SCROLL_TO:
                 return new ViewHolder(new View(mActivityContext.asContext()));
+            case VIEW_TYPE_SEARCH_RESULT_ROW:
+                return new ViewHolder(mLayoutInflater.inflate(
+                        R.layout.search_result_row, parent, false));
+            case VIEW_TYPE_SEARCH_SECTION_HEADER:
+                return new ViewHolder(mLayoutInflater.inflate(
+                        R.layout.search_section_header, parent, false));
+            case VIEW_TYPE_SEARCH_TOP_RESULT:
+                return new ViewHolder(mLayoutInflater.inflate(
+                        R.layout.search_top_result, parent, false));
+            case VIEW_TYPE_SEARCH_FILTERS:
+                return new ViewHolder(mLayoutInflater.inflate(
+                        R.layout.search_filters, parent, false));
+            case VIEW_TYPE_SEARCH_THUMBNAILS:
+                return new ViewHolder(mLayoutInflater.inflate(
+                        R.layout.search_thumbnails, parent, false));
             default:
                 if (mAdapterProvider.isViewSupported(viewType)) {
                     return mAdapterProvider.onCreateViewHolder(mLayoutInflater, parent, viewType);
@@ -291,6 +369,20 @@ public abstract class BaseAllAppsAdapter
                 icon.setOnFocusChangeListener(mIconFocusListener);
                 icon.configureMinimalPopup(
                         holder.getItemViewType() == VIEW_TYPE_PRIVATE_SPACE_APP_ICON);
+                if (holder.getItemViewType() != VIEW_TYPE_PRIVATE_SPACE_APP_ICON) {
+                    // Universal search: highlight the match and remember launches for ranking.
+                    AppInfo app = adapterItem.itemInfo;
+                    String query = SearchHistory.currentQuery();
+                    if (mApps.hasSearchResults() && !query.isEmpty() && app.title != null) {
+                        icon.applyLabel(FuzzyMatcher.highlight(query, app.title));
+                    }
+                    icon.setOnClickListener(!mApps.hasSearchResults() ? mOnIconClickListener
+                            : v -> {
+                                SearchHistory.recordLaunch(v.getContext(), SearchHistory.appKey(
+                                        app.getTargetComponent(), app.user));
+                                mOnIconClickListener.onClick(v);
+                            });
+                }
                 PrivateProfileManager privateProfileManager = mApps.getPrivateProfileManager();
                 if (privateProfileManager != null) {
                     // Set the alpha of the private space icon to 0 upon expanding the header so the
@@ -323,6 +415,30 @@ public abstract class BaseAllAppsAdapter
                         icon.setVisibility(GONE);
                     }
                 }
+                break;
+            }
+            case VIEW_TYPE_SEARCH_SECTION_HEADER: {
+                AdapterItem item = mApps.getAdapterItems().get(position);
+                ((TextView) holder.itemView).setText(
+                        UniversalSearchResults.getSectionTitle(
+                                mActivityContext.asContext(), item.searchSection));
+                break;
+            }
+            case VIEW_TYPE_SEARCH_RESULT_ROW:
+            case VIEW_TYPE_SEARCH_TOP_RESULT: {
+                AdapterItem item = mApps.getAdapterItems().get(position);
+                UniversalSearchResults.bind(mActivityContext, holder.itemView, item.searchResult);
+                break;
+            }
+            case VIEW_TYPE_SEARCH_FILTERS: {
+                AdapterItem item = mApps.getAdapterItems().get(position);
+                UniversalSearchResults.bindFilters(holder.itemView, item.searchFilters);
+                break;
+            }
+            case VIEW_TYPE_SEARCH_THUMBNAILS: {
+                AdapterItem item = mApps.getAdapterItems().get(position);
+                UniversalSearchResults.bindThumbnails(
+                        mActivityContext, holder.itemView, item.searchThumbnails);
                 break;
             }
             case VIEW_TYPE_EMPTY_SEARCH: {
