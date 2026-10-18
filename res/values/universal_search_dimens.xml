@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ported from PenguinOS Launcher3 universal search (Apache-2.0). -->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <dimen name="search_thumbnail_strip_radius">14dp</dimen>
+    <dimen name="search_thumbnail_size">96dp</dimen>
+    <dimen name="search_thumbnail_radius">8dp</dimen>
+    <dimen name="search_thumbnail_gap">8dp</dimen>
+    <!-- Home search pill (ColorOS "Search on Home screen": 40dp tall). -->
+    <dimen name="home_search_pill_height">40dp</dimen>
+    <dimen name="home_search_pill_min_width">220dp</dimen>
+    <!-- Gap and fade between the drawer list and a bottom search bar. -->
+    <dimen name="all_apps_bottom_search_gap">8dp</dimen>
+    <dimen name="all_apps_bottom_search_fade">48dp</dimen>
+</resources>

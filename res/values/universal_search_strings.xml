@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ported from PenguinOS Launcher3 universal search (Apache-2.0). -->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="search_timer_set">Timer set for %1$s</string>
+    <string name="search_time_in">%1$s · %2$s · %3$s</string>
+    <string name="search_show_more">Show %1$d more</string>
+    <string name="search_section_web_suggestions">Web suggestions</string>
+    <string name="search_section_shortcuts">Shortcuts</string>
+    <string name="search_section_settings">Settings</string>
+    <string name="search_section_screenshots">Recent screenshots</string>
+    <string name="search_section_quick_actions">Quick actions</string>
+    <string name="search_section_qs_tiles">Quick settings</string>
+    <string name="search_section_photos">Photos</string>
+    <string name="search_section_history">Recent searches</string>
+    <string name="search_section_files">Files</string>
+    <string name="search_section_events">Calendar</string>
+    <string name="search_section_conversations">Chats</string>
+    <string name="search_section_contacts">Contacts</string>
+    <string name="search_section_calculator">Calculator</string>
+    <string name="search_section_apps">Apps</string>
+    <string name="search_section_app_content">From apps</string>
+    <string name="search_section_actions">Actions</string>
+    <string name="search_pin_unsupported">Couldn\'t add to the home screen</string>
+    <string name="search_photo">Photo</string>
+    <string name="search_permission_summary">Tap to allow access in app info</string>
+    <string name="search_permission_files">Allow media access to search files</string>
+    <string name="search_permission_contacts">Allow contacts access to search contacts</string>
+    <string name="search_permission_calendar">Allow calendar access to search events</string>
+    <string name="search_menu_share">Share</string>
+    <string name="search_menu_open_with">Open with…</string>
+    <string name="search_menu_open_settings">Open settings</string>
+    <string name="search_menu_message">Message</string>
+    <string name="search_menu_copy_number">Copy number</string>
+    <string name="search_menu_copy">Copy</string>
+    <string name="search_menu_call">Call</string>
+    <string name="search_menu_app_info">App info</string>
+    <string name="search_menu_add_to_home">Add to home screen</string>
+    <string name="search_history_clear">Clear search history</string>
+    <string name="search_filter_all">All</string>
+    <string name="search_currency_source_stale">%1$s · ECB rates from %2$s, offline</string>
+    <string name="search_currency_source">%1$s · ECB rates, %2$s</string>
+    <string name="search_alarm_set">Alarm set for %1$s</string>
+    <string name="search_action_web">Search the web for \"%1$s\"</string>
+    <string name="search_action_timer">Set a timer for %1$s</string>
+    <string name="search_action_text">Message %1$s</string>
+    <string name="search_action_store">Search \"%1$s\" in %2$s</string>
+    <string name="search_action_reminder">Add \"%1$s\" to calendar</string>
+    <string name="search_action_open">Open %1$s</string>
+    <string name="search_action_in_app">Search in %1$s</string>
+    <string name="search_action_email">Email %1$s</string>
+    <string name="search_action_define_in">Look up \"%1$s\" in %2$s</string>
+    <string name="search_action_define">Define \"%1$s\"</string>
+    <string name="search_action_call">Call %1$s</string>
+    <string name="search_action_alarm">Set an alarm for %1$s</string>
+    <string name="search_action_add_contact">Add to contacts</string>
+    <string name="search_history_remove">Remove from recent searches</string>
+    <string name="search_whatsapp">WhatsApp</string>
+    <plurals name="search_duration_seconds">
+        <item quantity="one">%d second</item>
+        <item quantity="other">%d seconds</item>
+    </plurals>
+    <plurals name="search_duration_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <plurals name="search_duration_hours">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+    <string name="home_search_pill">Search</string>
+    <string name="universal_search_hint">Search</string>
+    <string name="dock_search_provider_title">Home search style</string>
+    <string name="dock_search_provider_launcher">Search pill (launcher search)</string>
+    <string name="dock_search_provider_google">Google search bar</string>
+    <string-array name="dock_search_provider_entries">
+        <item>@string/dock_search_provider_launcher</item>
+        <item>@string/dock_search_provider_google</item>
+    </string-array>
+    <string-array name="dock_search_provider_values" translatable="false">
+        <item>launcher</item>
+        <item>google</item>
+    </string-array>
+</resources>

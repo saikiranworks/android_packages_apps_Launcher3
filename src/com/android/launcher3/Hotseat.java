@@ -110,7 +110,15 @@ public class Hotseat extends CellLayout implements Insettable {
 
     public Hotseat(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        if (Utilities.showQSB(context)) {
+        if (Utilities.showHomeSearchPill(context)) {
+            // ColorOS-style search pill: opens the drawer with launcher search focused.
+            mQsb = LayoutInflater.from(context).inflate(R.layout.home_search_pill, this, false);
+            mQsb.setOnClickListener(v -> {
+                if (mActivity instanceof Launcher launcher) {
+                    launcher.openSearchFromHome();
+                }
+            });
+        } else if (Utilities.showQSB(context)) {
             int layoutRes = LauncherPrefs.DOCK_SEARCH_PIXEL_STYLE.get(context)
                     ? R.layout.qsb_container_hotseat_pixel
                     : R.layout.qsb_container_hotseat;
@@ -350,7 +358,15 @@ public class Hotseat extends CellLayout implements Insettable {
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
-        if (mQsb != null && mQsb.getVisibility() != View.GONE) {
+        if (mQsb != null && mQsb.getVisibility() != View.GONE
+                && mQsb.getId() == R.id.home_search_pill) {
+            DeviceProfile dp = mActivity.getDeviceProfile();
+            int height = Math.min(dp.getHotseatProfile().getQsbHeight(),
+                    getResources().getDimensionPixelSize(R.dimen.home_search_pill_height));
+            mQsb.measure(
+                    makeMeasureSpec(dp.getHotseatProfile().getQsbWidth(), MeasureSpec.AT_MOST),
+                    makeMeasureSpec(height, MeasureSpec.EXACTLY));
+        } else if (mQsb != null && mQsb.getVisibility() != View.GONE) {
             DeviceProfile dp = mActivity.getDeviceProfile();
             mQsb.measure(
                     makeMeasureSpec(dp.getHotseatProfile().getQsbWidth(), MeasureSpec.EXACTLY),
@@ -379,6 +395,16 @@ public class Hotseat extends CellLayout implements Insettable {
 
         int bottom = b - t - dp.getQsbOffsetY();
         int top = bottom - dp.getHotseatProfile().getQsbHeight();
+        if (mQsb.getId() == R.id.home_search_pill) {
+            // Centre the smaller pill in the slot reserved for the search bar.
+            int slotHeight = bottom - top;
+            top += (slotHeight - mQsb.getMeasuredHeight()) / 2;
+            bottom = top + mQsb.getMeasuredHeight();
+            if (!dp.getHotseatProfile().isQsbInline()) {
+                left = (r - l - qsbMeasuredWidth) / 2;
+                right = left + qsbMeasuredWidth;
+            }
+        }
         mQsb.layout(left, top, right, bottom);
     }
 

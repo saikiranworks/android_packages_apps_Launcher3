@@ -288,7 +288,25 @@ constructor(@ApplicationContext private val encryptedContext: Context) {
         val HOTSEAT_COUNT =
             backedUpItem(DeviceGridState.KEY_HOTSEAT_COUNT, -1, EncryptionType.ENCRYPTED)
         @JvmField val ALL_APPS_DARK_TEXT = backedUpItem("pref_all_apps_dark_text", false)
-        @JvmField val ALL_APPS_SEARCH_PLACEMENT = backedUpItem("pref_allapps_search_placement", "top")
+        @JvmField val ALL_APPS_SEARCH_PLACEMENT = backedUpItem("pref_allapps_search_placement", "bottom")
+        // Universal search (ported from PenguinOS Launcher3). Network-backed web suggestions
+        // stay off by default; photo search is not ported.
+        @JvmField val SEARCH_SHORTCUTS = backedUpItem("pref_search_shortcuts", true)
+        @JvmField val SEARCH_CONVERSATIONS = backedUpItem("pref_search_conversations", true)
+        @JvmField val SEARCH_CONTACTS = backedUpItem("pref_search_contacts", false)
+        @JvmField val SEARCH_SETTINGS = backedUpItem("pref_search_settings", true)
+        @JvmField val SEARCH_QS_TILES = backedUpItem("pref_search_qs_tiles", true)
+        @JvmField val SEARCH_CALCULATOR = backedUpItem("pref_search_calculator", true)
+        @JvmField val SEARCH_FILES = backedUpItem("pref_search_files", false)
+        @JvmField val SEARCH_EVENTS = backedUpItem("pref_search_events", false)
+        @JvmField val SEARCH_ACTIONS = backedUpItem("pref_search_actions", true)
+        @JvmField val SEARCH_QUICK_ACTIONS = backedUpItem("pref_search_quick_actions", true)
+        @JvmField val SEARCH_APP_CONTENT = backedUpItem("pref_search_app_content", true)
+        @JvmField val SEARCH_WEB_SUGGESTIONS = backedUpItem("pref_search_web_suggestions", false)
+        @JvmField val SEARCH_ENGINE = backedUpItem("pref_search_engine", "default")
+        @JvmField val SEARCH_HISTORY = backedUpItem("pref_search_history", true)
+        @JvmField val SEARCH_SECTION_ORDER = backedUpItem("pref_search_section_order", "")
+        @JvmField val SEARCH_MAX_PER_SECTION = backedUpItem("pref_search_max_per_section", 4)
         @JvmField val ALLAPPS_THEMED_ICONS = backedUpItem("pref_allapps_themed_icons", true)
         @JvmField val ALLAPPS_ICON_CUSTOMIZATION =
             backedUpItem("pref_allapps_icon_customization", Boolean::class.java) {
@@ -306,6 +324,8 @@ constructor(@ApplicationContext private val encryptedContext: Context) {
         @JvmField val DARK_STATUS_BAR = backedUpItem("pref_dark_status_bar", false)
         @JvmField val DOCK_MUSIC_SEARCH = backedUpItem("pref_dock_music_search", false)
         @JvmField val DOCK_SEARCH = backedUpItem("pref_dock_search", true)
+        // "launcher": ColorOS-style search pill opening launcher search; "google": Google bar.
+        @JvmField val DOCK_SEARCH_PROVIDER = backedUpItem("pref_dock_search_provider", "launcher")
         @JvmField val DOCK_SEARCH_PIXEL_STYLE = backedUpItem("pref_dock_search_pixel_style", true)
         @JvmField val DOCK_THEME = backedUpItem("pref_dock_theme", false)
         @JvmField val DRAWER_OPEN_KEYBOARD = backedUpItem("pref_drawer_open_keyboard", false)

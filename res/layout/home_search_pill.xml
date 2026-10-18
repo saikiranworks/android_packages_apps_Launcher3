@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     ColorOS-style "Search on Home screen" pill shown in the dock's search slot.
+     Based on the PenguinOS Launcher3 search pill (SPDX-License-Identifier: Apache-2.0).
+-->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/home_search_pill"
+    android:layout_width="wrap_content"
+    android:layout_height="@dimen/home_search_pill_height"
+    android:minWidth="@dimen/home_search_pill_min_width"
+    android:background="@drawable/bg_home_search_pill"
+    android:foreground="?android:attr/selectableItemBackgroundBorderless"
+    android:drawableStart="@drawable/ic_home_search_pill"
+    android:drawablePadding="8dp"
+    android:drawableTint="@android:color/white"
+    android:gravity="center"
+    android:paddingStart="18dp"
+    android:paddingEnd="22dp"
+    android:text="@string/home_search_pill"
+    android:contentDescription="@string/home_search_pill"
+    android:textColor="@android:color/white"
+    android:textSize="15sp"
+    android:singleLine="true"
+    android:fontFamily="@*android:string/config_bodyFontFamilyMedium" />

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="32dp"
+    android:layout_marginEnd="8dp"
+    android:background="@drawable/search_filter_chip_bg"
+    android:gravity="center"
+    android:paddingHorizontal="14dp"
+    android:textColor="@color/search_filter_chip_text"
+    android:textSize="14sp" />

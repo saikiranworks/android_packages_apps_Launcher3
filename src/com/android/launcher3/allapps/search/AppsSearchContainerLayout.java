@@ -52,6 +52,7 @@ import com.android.launcher3.allapps.BaseAllAppsAdapter.AdapterItem;
 import com.android.launcher3.allapps.PrivateProfileManager;
 import com.android.launcher3.allapps.SearchUiManager;
 import com.android.launcher3.search.SearchCallback;
+import com.android.launcher3.search.universal.UniversalSearchAlgorithm;
 import com.android.launcher3.util.ApiWrapper;
 import com.android.launcher3.util.Themes;
 import com.android.launcher3.views.ActivityContext;
@@ -183,9 +184,10 @@ public class AppsSearchContainerLayout extends ExtendedEditText
     private void setUpBackground() {
         Context context = getContext();
         float cornerRadius = getCornerRadius(context);
-        int color = Themes.getAttrColor(context, LauncherPrefs.DOCK_THEME.get(context)
-                ? R.attr.qsbFillColorThemed : R.attr.qsbFillColor);
-        // Follows a custom drawer color; otherwise keeps the stock (or themed) fill.
+        // ColorOS-style translucent box: 20% of the drawer's text color (#33FFFFFF on dark),
+        // instead of the solid Google search bar fill.
+        int color = ColorUtils.setAlphaComponent(getCurrentTextColor(), 0x33);
+        // Follows a custom drawer color; otherwise keeps the translucent fill.
         color = AppDrawerStyle.getSearchBackgroundColor(context, color);
         PaintDrawable pd = new PaintDrawable(color);
         pd.setCornerRadius(cornerRadius);
@@ -214,9 +216,14 @@ public class AppsSearchContainerLayout extends ExtendedEditText
     @Override
     public void initializeSearch(ActivityAllAppsContainerView<?> appsView) {
         mAppsView = appsView;
-        mSearchBarController.initialize(
-                new DefaultAppSearchAlgorithm(getContext(), mLauncher.getUiExecutor(), true),
-                this, mLauncher, this);
+        // Universal search (apps, shortcuts, settings, tiles, contacts, files, calculator...).
+        UniversalSearchAlgorithm algorithm =
+                new UniversalSearchAlgorithm(getContext(), mLauncher.getUiExecutor());
+        algorithm.setQueryHandler(query -> {
+            setText(query);
+            setSelection(query.length());
+        });
+        mSearchBarController.initialize(algorithm, this, mLauncher, this);
     }
 
     @Override
