@@ -142,6 +142,7 @@ public class CellLayout extends ViewGroup {
     // These arrays are used to implement the drag visualization on x-large screens.
     // They are used as circular arrays, indexed by mDragOutlineCurrent.
     @Thunk final CellLayoutLayoutParams[] mDragOutlines = new CellLayoutLayoutParams[4];
+    private final Rect[] mFolderDragVisualBounds = new Rect[mDragOutlines.length];
     @Thunk final float[] mDragOutlineAlphas = new float[mDragOutlines.length];
     private final InterruptibleInOutAnimator[] mDragOutlineAnims =
             new InterruptibleInOutAnimator[mDragOutlines.length];
@@ -646,6 +647,15 @@ public class CellLayout extends ViewGroup {
                         mTempOnDrawCellToRect);
                 mVisualizeGridRect.set(mTempOnDrawCellToRect);
                 mVisualizeGridRect.inset(paddingX, paddingY);
+                Rect folderBounds = mFolderDragVisualBounds[i];
+                if (folderBounds != null) {
+                    // Occupancy remains 2x2/3x3; the visual drop outline follows the capped
+                    // preview users actually see, rather than the much larger cell allocation.
+                    mVisualizeGridRect.set(mTempOnDrawCellToRect.left + folderBounds.left,
+                            mTempOnDrawCellToRect.top + folderBounds.top,
+                            mTempOnDrawCellToRect.left + folderBounds.right,
+                            mTempOnDrawCellToRect.top + folderBounds.bottom);
+                }
 
                 mVisualizeGridPaint.setAlpha(255);
                 mVisualizeGridPaint.setStyle(Paint.Style.STROKE);
@@ -1202,6 +1212,17 @@ public class CellLayout extends ViewGroup {
             mDragOutlineAnims[oldIndex].animateOut();
             mDragOutlineCurrent = (oldIndex + 1) % mDragOutlines.length;
 
+            Rect folderOutline = null;
+            if (dragObject.originalView instanceof com.android.launcher3.folder.FolderIcon icon
+                    && icon.isBigFolder() && icon.getWidth() > 0) {
+                // The panel exactly as it will sit once dropped here (edge columns included).
+                folderOutline = new Rect();
+                icon.getLargeFolderPreview().getPanelRectAt(cellX, cellY, folderOutline);
+            } else if (dragObject.dragInfo instanceof com.android.launcher3.model.data.FolderInfo f
+                    && f.isBigFolder() && dragObject.dragView != null) {
+                folderOutline = new Rect(dragObject.dragView.getDragRegion());
+            }
+            mFolderDragVisualBounds[mDragOutlineCurrent] = folderOutline;
             CellLayoutLayoutParams cell = mDragOutlines[mDragOutlineCurrent];
             cell.setCellX(cellX);
             cell.setCellY(cellY);

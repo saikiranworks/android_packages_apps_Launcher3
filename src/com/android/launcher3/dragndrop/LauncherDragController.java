@@ -68,7 +68,11 @@ public class LauncherDragController extends DragController {
 
         final Resources res = mLauncher.getResources();
         final float scalePx;
-        if (originalView.getViewType() == DraggableView.DRAGGABLE_WIDGET) {
+        if (dragInfo instanceof com.android.launcher3.model.data.FolderInfo folder
+                && folder.isBigFolder()) {
+            scalePx = 0f;
+            allowSpringDrawable = false;
+        } else if (originalView.getViewType() == DraggableView.DRAGGABLE_WIDGET) {
             scalePx = mIsInPreDrag ? 0f : getWidgetDragScalePx(drawable, view, dragInfo);
         } else {
             scalePx = mIsInPreDrag ? res.getDimensionPixelSize(R.dimen.pre_drag_view_scale) : 0f;

@@ -92,7 +92,7 @@ public class DragView extends FrameLayout {
     protected final int mRegistrationX;
     protected final int mRegistrationY;
     private final float mInitialScale;
-    private final float mEndScale;
+    private float mEndScale;
     protected final float mScaleOnDrop;
     protected final int[] mTempLoc = new int[2];
 
@@ -266,6 +266,11 @@ public class DragView extends FrameLayout {
     @TargetApi(Build.VERSION_CODES.O)
     public void setItemInfo(final ItemInfo info) {
         mItemType = info.itemType;
+        if (info instanceof com.android.launcher3.model.data.FolderInfo folder
+                && folder.isBigFolder()) {
+            mEndScale = mInitialScale;
+            return;
+        }
         if (!mAllowSpringDrawable) {
             return;
         }

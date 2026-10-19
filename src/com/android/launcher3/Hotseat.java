@@ -482,7 +482,9 @@ public class Hotseat extends CellLayout implements Insettable {
     //  `SystemDragItemInfo` once `SystemDragController` is supported in all `ActivityContext`s. The
     //  current assumption is that `SystemDragItemInfo` indicates files dragged from another app.
     private boolean isSupportedDrag(DropTarget.DragObject d) {
-        return !(HomeScreenFilesUtilsKt.isFileSystemItem(d.dragInfo)
+        // Multi-cell folders belong on workspace pages, never in the one-row hotseat.
+        return d.dragInfo.spanX == 1 && d.dragInfo.spanY == 1
+                && !(HomeScreenFilesUtilsKt.isFileSystemItem(d.dragInfo)
                 || d.dragInfo instanceof LauncherAppWidgetInfo
                 || d.dragInfo instanceof PendingAddWidgetInfo
                 || d.dragInfo instanceof SystemDragItemInfo);

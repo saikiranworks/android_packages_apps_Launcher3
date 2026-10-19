@@ -33,12 +33,11 @@ import androidx.annotation.Nullable;
 
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.LauncherAppState;
-import com.android.launcher3.allapps.AllAppsGridAdapter;
+import com.android.launcher3.LauncherSettings;
 import com.android.launcher3.graphics.ThemeManager;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.ItemInfoWithIcon;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
-import com.android.launcher3.views.ActivityContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,12 +55,16 @@ public class LargeFolderPreview {
 
     // Fraction of the available (above-label) area used by the square preview.
     private static final float PREVIEW_SIZE_FRACTION = 0.94f;
-    // Hard cap on the preview side, in dp, for *workspace* folders only. A workspace big folder
-    // spans 2x2 grid cells, so sizing it only off the cell made the same folder visibly bigger on
-    // a 4x4 grid (~170dp) than on a 5x5 (~136dp). Icon size is no use as a reference because it
-    // scales with the grid too. 136dp is what the 5x5 grid already produced, so that grid is
-    // unchanged and the roomier ones come down to match it.
+    // Density-aware maximum for a 2x2 preview; 3x3 workspace previews scale proportionally.
     private static final float MAX_PREVIEW_SIZE_DP = 136f;
+    // Drawer category tiles sit three to a row in a wide sheet, so they get a larger cap.
+    private static final float MAX_DRAWER_PREVIEW_SIZE_DP = 168f;
+    /** Content height for a compact category tile before its label and row gap. */
+    public static int getDrawerTileSize(Context context) {
+        return Math.round(MAX_DRAWER_PREVIEW_SIZE_DP
+                * context.getResources().getDisplayMetrics().density / PREVIEW_SIZE_FRACTION);
+    }
+
     // Gap between the four quadrants, as a fraction of the preview side.
     private static final float QUADRANT_GAP_FRACTION = 0.06f;
     // Large icon size within its quadrant.
@@ -80,12 +83,20 @@ public class LargeFolderPreview {
     private static final int ACCENT = 0xFFC8783E;
 
     private final FolderIcon mIcon;
+    private Object mLastShape;
+    private boolean mLastThemed;
     // The frosted "fake blur" panel behind the whole preview, and its drag-over highlight.
     private final Paint mPanelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mPanelStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mAcceptFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mAcceptStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final float mDensity;
+    private int mHorizontalShift;
+    private int mVerticalShift;
+    private int mLastTop;
+    private int mLastAvailableHeight;
+    private int mLastSide;
+    private int mLastPad;
 
     // The apps drawn as large, launchable icons (index-aligned with mLargeRects).
     private final List<ItemInfo> mLargeItems = new ArrayList<>();
@@ -189,16 +200,6 @@ public class LargeFolderPreview {
         }
     }
 
-    private int drawerTileContentWidth() {
-        DeviceProfile dp = ActivityContext.lookupContext(mIcon.getContext()).getDeviceProfile();
-        if (dp == null) {
-            return 0;
-        }
-        int margin = dp.getAllAppsProfile().getLeftRightMargin();
-        int recyclerWidth = dp.getDeviceProperties().getAvailableWidthPx() - (2 * margin);
-        return Math.max(0, (recyclerWidth / AllAppsGridAdapter.FOLDERS_PER_ROW) - margin);
-    }
-
     @Nullable
     private Drawable newIcon(ItemInfo item) {
         if (item instanceof WorkspaceItemInfo wii) {
@@ -255,27 +256,30 @@ public class LargeFolderPreview {
     public int updateGeometry(int width, int height, int top, int labelHeight) {
         int availableHeight = height - top - labelHeight;
         int side = Math.round(Math.min(width, availableHeight) * PREVIEW_SIZE_FRACTION);
-        // See MAX_PREVIEW_SIZE_DP: keeps the tile the same size on every workspace grid. Min()
-        // means the cap can only ever shrink the preview, never push it outside a tighter cell.
-        // Drawer category tiles (forceBigPreview) are excluded: their tile is already sized off
-        // the drawer's own half-row width, which does not vary with the workspace grid, so the
-        // cap only made them smaller for no reason.
-        if (!mIcon.mInfo.forceBigPreview) {
-            int drawerSide = drawerTileContentWidth();
-            int cap = drawerSide > 0
-                    ? Math.round(drawerSide * PREVIEW_SIZE_FRACTION)
-                    : Math.round(MAX_PREVIEW_SIZE_DP * mDensity * grid() / 2f);
-            side = Math.min(side, cap);
-        }
+        // Bound the preview in dp rather than a fraction of the physical screen width.
+        // A density change must scale both workspace and drawer previews. The allocated
+        // cell still limits the result so a larger display size never overflows the grid.
+        float spanScale = mIcon.mInfo.forceBigPreview ? 1f : grid() / 2f;
+        float maxDp = mIcon.mInfo.forceBigPreview ? MAX_DRAWER_PREVIEW_SIZE_DP : MAX_PREVIEW_SIZE_DP;
+        side = Math.min(side, Math.round(maxDp * mDensity * spanScale));
         if (side <= 0 || width <= 0) {
             mPreviewBottom = top;
             return mPreviewBottom;
         }
 
-        int left = (width - side) / 2;
-        int previewTop = top + Math.max(0, (availableHeight - side) / 2);
         int n = grid();
         int gap = Math.round(side * QUADRANT_GAP_FRACTION / (n - 1) * (n == 2 ? 1f : 1.4f));
+        int centeredLeft = (width - side) / 2;
+        mLastSide = side;
+        mLastPad = Math.round(gap * 0.5f);
+        int left = edgeAlignedLeft(width, side, mLastPad, centeredLeft, mIcon.mInfo == null
+                ? -1 : mIcon.mInfo.cellX);
+        mHorizontalShift = left - centeredLeft;
+        mLastTop = top;
+        mLastAvailableHeight = availableHeight;
+        int previewTop = edgeAlignedTop(top, availableHeight, side, mLastPad,
+                mIcon.mInfo == null ? -1 : mIcon.mInfo.cellY);
+        mVerticalShift = previewTop - (top + Math.max(0, (availableHeight - side) / 2));
         int cell = (side - gap * (n - 1)) / n;
 
         // Cells in reading order; the last one holds the cluster.
@@ -297,8 +301,87 @@ public class LargeFolderPreview {
         return mPreviewBottom;
     }
 
+    /**
+     * A home-screen folder touching the left or right edge column sits flush with that edge,
+     * instead of floating centred in its wide 2x2/3x3 block.
+     */
+    private int edgeAlignedLeft(int width, int side, int pad, int centeredLeft, int cellX) {
+        if (mIcon.mInfo == null || mIcon.mInfo.forceBigPreview || mIcon.mActivity == null
+                || mIcon.mInfo.container != LauncherSettings.Favorites.CONTAINER_DESKTOP) {
+            return centeredLeft;
+        }
+        DeviceProfile dp = mIcon.mActivity.getDeviceProfile();
+        int columns = dp.inv.numColumns;
+        // Flush with the cell edge, as a widget in that column sits.
+        int inset = 0;
+        int left = centeredLeft;
+        if (cellX <= 0) {
+            left = inset + pad;
+        } else if (cellX + mIcon.mInfo.spanX >= columns) {
+            left = width - inset - pad - side;
+        }
+        // Never let the panel leave the icon's own bounds.
+        return Math.max(pad, Math.min(left, width - side - pad));
+    }
+
+    /** Same idea as {@link #edgeAlignedLeft} for the top and bottom rows. */
+    private int edgeAlignedTop(int top, int availableHeight, int side, int pad, int cellY) {
+        int centeredTop = top + Math.max(0, (availableHeight - side) / 2);
+        if (mIcon.mInfo == null || mIcon.mInfo.forceBigPreview || mIcon.mActivity == null
+                || mIcon.mInfo.container != LauncherSettings.Favorites.CONTAINER_DESKTOP) {
+            return centeredTop;
+        }
+        int rows = mIcon.mActivity.getDeviceProfile().inv.numRows;
+        int previewTop = centeredTop;
+        if (cellY <= 0) {
+            previewTop = top + pad;
+        } else if (cellY + mIcon.mInfo.spanY >= rows) {
+            // Preview and its label as low as the block allows, keeping room for the gap
+            // between them so the label isn't pushed out of the icon and clipped.
+            previewTop = top + Math.max(0, availableHeight - side) - pad
+                    - mIcon.getBigFolderLabelGap();
+        }
+        int lowest = top + Math.max(0, availableHeight - side - mIcon.getBigFolderLabelGap());
+        return Math.max(top + pad, Math.min(previewTop, lowest));
+    }
+
+    /**
+     * The frosted panel's bounds (icon-local) if this folder were dropped with its top-left cell
+     * at ({@code cellX}, {@code cellY}); used for the drop outline while dragging.
+     */
+    public void getPanelRectAt(int cellX, int cellY, Rect out) {
+        getPreviewRect(out);
+        int width = mIcon.getWidth();
+        int centeredLeft = (width - mLastSide) / 2;
+        int target = edgeAlignedLeft(width, mLastSide, mLastPad, centeredLeft, cellX)
+                - centeredLeft;
+        int centeredTop = mLastTop + Math.max(0, (mLastAvailableHeight - mLastSide) / 2);
+        int targetY = edgeAlignedTop(mLastTop, mLastAvailableHeight, mLastSide, mLastPad, cellY)
+                - centeredTop;
+        out.offset(target - mHorizontalShift, targetY - mVerticalShift);
+    }
+
+    /** How far the preview is shifted from centre (the label follows it). */
+    public int getHorizontalShift() {
+        return mHorizontalShift;
+    }
+
     /** Draws the big-folder preview using the geometry from the icon's current size. */
     public void draw(Canvas canvas) {
+        ThemeManager theme = ThemeManager.INSTANCE.get(mIcon.getContext());
+        Object shape = theme.getIconShapeData().getValue();
+        boolean themed = theme.isIconThemeEnabled();
+        if (shape != mLastShape || themed != mLastThemed) {
+            mLastShape = shape;
+            mLastThemed = themed;
+            // Shape updates need fresh drawables even if the cached bitmap is unchanged.
+            for (int i = 0; i < mLargeItems.size(); i++) {
+                mLargeDrawables.set(i, newIcon(mLargeItems.get(i)));
+            }
+            for (int i = 0; i < mClusterItems.size(); i++) {
+                mClusterDrawables.set(i, newIcon(mClusterItems.get(i)));
+            }
+        }
         updateGeometry(mIcon.getWidth(), mIcon.getHeight(), mIcon.getPaddingTop(),
                 mIcon.getBigFolderLabelHeight());
         if (mPreviewBottom <= mIcon.getPaddingTop()) {

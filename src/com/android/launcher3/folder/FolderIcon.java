@@ -766,6 +766,12 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
             super.onMeasure(widthMeasureSpec, heightMeasureSpec);
             return;
         }
+        if (mFolderName != null
+                && mFolderName.getLayoutParams() instanceof FrameLayout.LayoutParams nameLp) {
+            // Undo any edge shift left over from when this was a big folder.
+            nameLp.leftMargin = 0;
+            nameLp.rightMargin = 0;
+        }
         boolean shouldCenterIcon = mActivity.getDeviceProfile().getWorkspaceProfile()
                 .getIconCenterVertically();
         if (shouldCenterIcon) {
@@ -788,6 +794,10 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
                 width, height, getPaddingTop(), getBigFolderLabelHeight());
         FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) mFolderName.getLayoutParams();
         lp.topMargin = previewBottom + getBigFolderLabelGap();
+        // Keep the centred label under an edge-aligned preview.
+        int shift = mLargeFolderPreview.getHorizontalShift();
+        lp.leftMargin = Math.max(0, shift * 2);
+        lp.rightMargin = Math.max(0, -shift * 2);
     }
 
     /** Sets the visibility of the icon's title text */
@@ -889,7 +899,7 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     }
 
     /** Gap between a big folder's preview and the label below it. */
-    private int getBigFolderLabelGap() {
+    int getBigFolderLabelGap() {
         if (mInfo != null && mInfo.forceBigPreview) {
             return getResources().getDimensionPixelSize(R.dimen.app_library_tile_label_gap);
         }
