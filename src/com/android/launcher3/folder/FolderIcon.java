@@ -1107,6 +1107,19 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
             ItemClickHandler.onClickAppShortcut(null, target, launcher);
             return true;
         }
+        if (target != null && isBigFolder() && mActivity != null
+                && mActivity.getItemOnClickListener() != null) {
+            // Taskbar/dock drawer: its click handler dispatches on the view's tag, so present the
+            // tapped app as the tag for this one call instead of the folder.
+            Object folderTag = getTag();
+            setTag(target);
+            try {
+                mActivity.getItemOnClickListener().onClick(this);
+            } finally {
+                setTag(folderTag);
+            }
+            return true;
+        }
         // Caddy drawer folders open an in-drawer category page (CaddyCategoryView) instead of the
         // workspace Folder; that is wired as this icon's OnClickListener in #inflateIcon, so just
         // fall through to super.performClick() to invoke it.

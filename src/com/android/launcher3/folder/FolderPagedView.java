@@ -291,8 +291,16 @@ public class FolderPagedView extends PagedView<PageIndicatorDots> implements Cli
     private CellLayout createAndAddNewPage() {
         DeviceProfile grid = mFolder.mActivityContext.getDeviceProfile();
         CellLayout page = mViewCache.getView(R.layout.folder_page, getContext(), this);
-        page.setCellDimensions(grid.getFolderProfile().getCellWidthPx(),
-                grid.getFolderProfile().getCellHeightPx());
+        if (mFolder.getInfo().forceBigPreview) {
+            // Responsive workspace folder cells can span half a tablet. Categories need
+            // compact app cells, independent of the large tile's allocation in the drawer.
+            int cap = Math.round(112 * getResources().getDisplayMetrics().density);
+            page.setCellDimensions(Math.min(grid.getFolderProfile().getCellWidthPx(), cap),
+                    Math.min(grid.getFolderProfile().getCellHeightPx(), cap));
+        } else {
+            page.setCellDimensions(grid.getFolderProfile().getCellWidthPx(),
+                    grid.getFolderProfile().getCellHeightPx());
+        }
         page.getShortcutsAndWidgets().setMotionEventSplittingEnabled(false);
         page.setInvertIfRtl(true);
         page.setGridSize(mGridCountX, mGridCountY);
@@ -310,7 +318,19 @@ public class FolderPagedView extends PagedView<PageIndicatorDots> implements Cli
         width -= (getPaddingLeft() + getPaddingRight());
         height -= (getPaddingTop() + getPaddingBottom());
         for (int i = getChildCount() - 1; i >= 0; i --) {
-            ((CellLayout) getChildAt(i)).setFixedSize(width, height);
+            CellLayout page = (CellLayout) getChildAt(i);
+            if (mFolder.getInfo().forceBigPreview) {
+                int gapX = mFolder.mActivityContext.getDeviceProfile().getFolderProfile()
+                        .getCellLayoutBorderSpacePx().x;
+                int gapY = mFolder.mActivityContext.getDeviceProfile().getFolderProfile()
+                        .getCellLayoutBorderSpacePx().y;
+                page.setCellDimensions(
+                        Math.max(1, (width - Math.max(0, mGridCountX - 1) * gapX)
+                                / Math.max(1, mGridCountX)),
+                        Math.max(1, (height - Math.max(0, mGridCountY - 1) * gapY)
+                                / Math.max(1, mGridCountY)));
+            }
+            page.setFixedSize(width, height);
         }
     }
 

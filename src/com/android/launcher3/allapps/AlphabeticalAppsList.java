@@ -360,9 +360,11 @@ public class AlphabeticalAppsList implements AllAppsStore.OnUpdateListener {
                         || BaseAllAppsAdapter.isPrivateSpaceSysAppsDividerView(item.viewType)) {
                     numAppsInSection = 0;
                 } else if (BaseAllAppsAdapter.isIconViewType(item.viewType)) {
-                    // Caddy category tiles span two grid columns, so they consume two slots.
-                    int slots = (item.viewType == BaseAllAppsAdapter.VIEW_TYPE_FOLDER) ? 2 : 1;
-                    if (numAppsInSection % mNumAppsPerRowAllApps == 0) {
+                    int columns = item.viewType == BaseAllAppsAdapter.VIEW_TYPE_FOLDER
+                            ? AllAppsGridAdapter.foldersPerRow(mNumAppsPerRowAllApps)
+                            : mNumAppsPerRowAllApps;
+                    int slots = 1;
+                    if (numAppsInSection % columns == 0) {
                         numAppsInRow = 0;
                         rowIndex++;
                     }

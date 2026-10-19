@@ -39,6 +39,7 @@ import android.window.OnBackInvokedDispatcher;
 
 import androidx.annotation.Nullable;
 
+import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.Insettable;
 import com.android.launcher3.LauncherPrefs;
@@ -332,6 +333,15 @@ public class TaskbarAllAppsSlideInView extends AbstractSlideInView<TaskbarOverla
 
     @Override
     public void onBackInvoked() {
+        // An open category popup sits above the drawer in this window; back closes it first,
+        // as it does in the home drawer.
+        AbstractFloatingView category = AbstractFloatingView.getOpenView(
+                mActivityContext, TYPE_CADDY_CATEGORY);
+        if (category != null) {
+            category.close(true);
+            post(this::animateSwipeToDismissProgressToStart);
+            return;
+        }
         if (mAllAppsCallbacks.handleSearchBackInvoked()) {
             // We need to scale back taskbar all apps if we navigate back within search inside all
             // apps

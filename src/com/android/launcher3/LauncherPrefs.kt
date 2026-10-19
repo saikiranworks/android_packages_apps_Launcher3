@@ -290,7 +290,7 @@ constructor(@ApplicationContext private val encryptedContext: Context) {
         @JvmField val ALL_APPS_DARK_TEXT = backedUpItem("pref_all_apps_dark_text", false)
         @JvmField val DRAWER_SCROLLBAR = backedUpItem("pref_drawer_scrollbar", true)
         @JvmField val DRAWER_SEARCH = backedUpItem("pref_drawer_search", true)
-        @JvmField val DRAWER_LIST = backedUpItem("pref_drawer_list", true)
+        @JvmField val DRAWER_LIST = backedUpItem("pref_drawer_list", false)
         @JvmField val APP_LIBRARY = backedUpItem("pref_app_library", false)
         @JvmField val SEARCH_BAR_BOTTOM = backedUpItem("pref_search_bar_bottom", true)
         @JvmField val FONT_SIZE = backedUpItem("pref_custom_font_size", 100)

@@ -45,6 +45,7 @@ import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.R;
 import com.android.launcher3.allapps.search.SearchAdapterProvider;
 import com.android.launcher3.folder.FolderIcon;
+import com.android.launcher3.folder.LargeFolderPreview;
 import com.android.launcher3.util.Themes;
 import com.android.launcher3.model.data.AppInfo;
 import com.android.launcher3.model.data.FolderInfo;
@@ -377,11 +378,8 @@ public abstract class BaseAllAppsAdapter
                 return new ViewHolder(mLayoutInflater.inflate(
                         R.layout.search_thumbnails, parent, false));
             case VIEW_TYPE_FOLDER: {
-                // Caddy: an auto-categorized folder rendered as a big iOS-style tile. It takes half
-                // the grid width (see GridSpanSizer) so two sit side by side, and is square: the
-                // preview inside is a 2x2 arrangement, so a tile sized off the icon-row height
-                // instead came out wider than it is tall and the cluster floated in dead space.
-                // The FolderIcon is inflated/attached on bind.
+                // Category columns follow the device profile; cap the preview in dp and
+                // keep its row height compact even when a column has extra horizontal room.
                 int belowPanel = parent.getResources().getDimensionPixelSize(
                         R.dimen.app_library_tile_label_room)
                         + parent.getResources().getDimensionPixelSize(
@@ -390,7 +388,9 @@ public abstract class BaseAllAppsAdapter
                     @Override
                     protected void onMeasure(int widthSpec, int heightSpec) {
                         super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(
-                                MeasureSpec.getSize(widthSpec) + belowPanel,
+                                Math.min(MeasureSpec.getSize(widthSpec),
+                                        LargeFolderPreview.getDrawerTileSize(getContext()))
+                                        + belowPanel,
                                 MeasureSpec.EXACTLY));
                     }
                 };

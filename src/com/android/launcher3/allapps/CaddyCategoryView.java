@@ -16,42 +16,36 @@
 
 package com.android.launcher3.allapps;
 
-import static com.android.app.animation.Interpolators.EMPHASIZED;
+import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Rect;
-import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.util.AttributeSet;
-import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewParent;
-import android.view.ViewTreeObserver;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
+import androidx.core.graphics.ColorUtils;
 
 import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.BubbleTextView;
-import com.android.launcher3.DeviceProfile;
+import com.android.launcher3.DropTarget;
 import com.android.launcher3.R;
-import com.android.launcher3.Utilities;
+import com.android.launcher3.dragndrop.DragController;
+import com.android.launcher3.dragndrop.DragOptions;
 import com.android.launcher3.folder.FolderIcon;
-import com.android.launcher3.folder.LargeFolderPreview;
 import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.util.Themes;
-import com.android.launcher3.dragndrop.DragController;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.BaseDragLayer;
 
@@ -59,43 +53,50 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+/** A compact folder popup for transient drawer categories, without workspace database writes. */
 public class CaddyCategoryView extends AbstractFloatingView {
-
-    private static final int MATCH_PARENT = ViewGroup.LayoutParams.MATCH_PARENT;
-    private static final int WRAP_CONTENT = ViewGroup.LayoutParams.WRAP_CONTENT;
-
-    /** Matches {@link com.android.launcher3.folder.Folder}'s background alpha. */
-    private static final int SIDE_MARGIN_DP = 20;
-    private static final int TITLE_TOP_DP = 120;
-    private static final int COLUMNS = 4;
-    private static final int SCRIM_ALPHA = 0x59;
-    private static final long OPEN_DURATION = 420;
-    private static final long CLOSE_DURATION = 360;
-    private static final float BEHIND_SCALE = 0.92f;
-    private static final float LATE_FADE_START = 0.55f;
-    private static final float BEHIND_GONE_BY = 0.45f;
-    private static final float BEHIND_RETURNS_BELOW = 0.4f;
-
     private final ActivityContext mActivityContext;
+    private final Rect mBounds = new Rect();
     private final Rect mTileRect = new Rect();
-    private final List<BubbleTextView> mIcons = new ArrayList<>();
-    private final Rect mTmpRect = new Rect();
-
-    private TextView mTitle;
-    private ScrollView mScroller;
+    private LinearLayout mPanel;
     private FolderIcon mTile;
-    private View mGridBehind;
-    private ValueAnimator mAnimator;
-    private boolean mClosing;
+    private int mColumns;
+    private int mRows;
+    private final DragController.DragListener mDragListener = new DragController.DragListener() {
+        @Override
+        public void onDragStart(DropTarget.DragObject dragObject, DragOptions options) {
+            close(true);
+        }
 
-    private float[] mFromX;
-    private float[] mFromY;
-    private float[] mFromScale;
-    private boolean[] mDrawnInTile;
+        @Override
+        public void onDragEnd() {
+            DragController dc = mActivityContext.getDragController();
+            if (dc != null) dc.removeDragListener(this);
+        }
+    };
+    // Closes the popup if its drawer goes away underneath it (e.g. taskbar drawer dismissed).
+    private final OnAttachStateChangeListener mTileDetachListener =
+            new OnAttachStateChangeListener() {
+                @Override
+                public void onViewAttachedToWindow(View v) { }
 
-    public CaddyCategoryView(Context context) {
-        this(context, null);
-    }
+                @Override
+                public void onViewDetachedFromWindow(View v) {
+                    // Deferred: the host may be mid-way through detaching its children.
+                    MAIN_EXECUTOR.post(() -> {
+                        if (!mIsOpen) return;
+                        if (isAttachedToWindow()) {
+                            close(false);
+                        } else {
+                            // The whole window is gone; just reset state.
+                            mIsOpen = false;
+                            restoreTile();
+                        }
+                    });
+                }
+            };
+
+    public CaddyCategoryView(Context context) { this(context, null); }
 
     public CaddyCategoryView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -103,299 +104,184 @@ public class CaddyCategoryView extends AbstractFloatingView {
     }
 
     public static CaddyCategoryView show(FolderIcon tile) {
-        ActivityContext activityContext = ActivityContext.lookupContext(tile.getContext());
-        BaseDragLayer<?> dragLayer = activityContext.getDragLayer();
-
+        ActivityContext activity = ActivityContext.lookupContext(tile.getContext());
+        // Keep the taskbar drawer open: it is itself a floating view in the taskbar overlay
+        // window, and closing it there destroys the whole overlay window before we can add to it.
+        AbstractFloatingView.closeAllOpenViewsExcept(activity, false, TYPE_TASKBAR_ALL_APPS);
         CaddyCategoryView view = new CaddyCategoryView(tile.getContext());
         view.populate(tile);
-        BaseDragLayer.LayoutParams lp = new BaseDragLayer.LayoutParams(MATCH_PARENT, MATCH_PARENT);
-        // Full bleed, so the scrim runs under the status and navigation bars as well; the page
-        // pads itself by the insets.
+        BaseDragLayer.LayoutParams lp = new BaseDragLayer.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         lp.ignoreInsets = true;
-        dragLayer.addView(view, lp);
+        activity.getDragLayer().addView(view, lp);
         view.mIsOpen = true;
-        view.animateOpenFrom(tile);
+        // Like a real folder, hide the source tile while open so it doesn't show through.
+        tile.setVisibility(INVISIBLE);
+        tile.addOnAttachStateChangeListener(view.mTileDetachListener);
+        view.mPanel.setAlpha(0f);
+        view.mPanel.setScaleX(.9f);
+        view.mPanel.setScaleY(.9f);
+        view.mPanel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(200).start();
         return view;
     }
 
     private void populate(FolderIcon tile) {
-        FolderInfo info = (tile.getTag() instanceof FolderInfo) ? (FolderInfo) tile.getTag() : null;
-        Context context = getContext();
         mTile = tile;
-
-        setOrientation(VERTICAL);
-        setClipChildren(false);
-        setClipToPadding(false);
-        setScrimAlpha(0);
-        int side = dp(SIDE_MARGIN_DP);
-        Rect insets = mActivityContext.getDeviceProfile().getInsets();
-        setPadding(side, insets.top + dp(TITLE_TOP_DP), side, insets.bottom);
-
-        // The category panel (frosted rounded square, matching the tile).
-        mTitle = new TextView(context);
-        mTitle.setText(info != null ? info.title : "");
-        mTitle.setTextColor(Themes.getAttrColor(context, R.attr.folderTextColor));
-        // iOS's large title, in the face the launcher's own labels use.
-        mTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 34);
-        mTitle.setTypeface(Typeface.create(
-                Typeface.create("google-sans-flex", Typeface.NORMAL), 700, false));
-        mTitle.setPadding(dp(4), 0, dp(4), dp(16));
-        addView(mTitle, new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
-
-        DeviceProfile dp = mActivityContext.getDeviceProfile();
-        int cellH = dp.getAllAppsProfile().getCellHeightPx();
-        mScroller = new ScrollView(context);
-        mScroller.setClipChildren(false);
-        mScroller.setClipToPadding(false);
-        mScroller.setVerticalScrollBarEnabled(false);
-        GridLayout grid = new GridLayout(context);
-        grid.setColumnCount(COLUMNS);
-        grid.setClipChildren(false);
-        if (info != null) {
-            List<ItemInfo> contents = new ArrayList<>(info.getContents());
-            contents.sort(Comparator.comparingInt(item -> item.rank));
-            for (ItemInfo item : contents) {
-                if (!(item instanceof WorkspaceItemInfo)) {
-                    continue;
-                }
-                BubbleTextView icon = (BubbleTextView) LayoutInflater.from(context)
-                        .inflate(R.layout.all_apps_icon, grid, false);
-                icon.reset();
-                icon.applyFromWorkspaceItem((WorkspaceItemInfo) item);
-                icon.setOnClickListener(mActivityContext.getItemOnClickListener());
-                View.OnLongClickListener longClick =
-                        mActivityContext.getAllAppsItemLongClickListener();
-                icon.setOnLongClickListener(v -> {
-                    boolean handled = longClick != null && longClick.onLongClick(v);
-                    DragController dragController = mActivityContext.getDragController();
-                    if (dragController != null && dragController.isDragging()) {
-                        close(false);
-                    }
-                    return handled;
-                });
-                icon.setCustomActionsListener(
-                        mActivityContext.getAllAppsItemCustomActionsListener());
-                GridLayout.LayoutParams glp = new GridLayout.LayoutParams();
-                glp.width = 0;
-                glp.height = cellH;
-                glp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1, 1f);
-                icon.setLayoutParams(glp);
-                grid.addView(icon);
-                mIcons.add(icon);
-            }
+        FolderInfo info = (FolderInfo) tile.getTag();
+        List<ItemInfo> contents = new ArrayList<>(info.getContents());
+        contents.sort(Comparator.comparingInt(item -> item.rank));
+        mColumns = Math.max(1, Math.min(4, contents.size()));
+        mRows = Math.max(1, (contents.size() + mColumns - 1) / mColumns);
+        setBackgroundColor(0x59000000);
+        mPanel = new LinearLayout(getContext());
+        mPanel.setOrientation(VERTICAL);
+        mPanel.setPadding(dp(16), dp(12), dp(16), dp(16));
+        GradientDrawable background = new GradientDrawable();
+        int panelColor = Themes.getAttrColor(getContext(), R.attr.folderBackgroundColor);
+        if (Color.alpha(panelColor) < 255) {
+            // The blur style tint is translucent; without a blur behind it, the drawer content
+            // ghosts through, so lay it over the opaque theme background.
+            int base = Themes.getAttrColor(getContext(), android.R.attr.colorBackground);
+            panelColor = ColorUtils.compositeColors(panelColor,
+                    ColorUtils.setAlphaComponent(base, 255));
         }
-
-        mScroller.addView(grid, new ScrollView.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
-        addView(mScroller, new LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f));
+        background.setColor(panelColor);
+        background.setCornerRadius(dp(24));
+        mPanel.setBackground(background);
+        mPanel.setElevation(dp(12));
+        mPanel.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+        mPanel.setAccessibilityPaneTitle(info.title);
+        TextView title = new TextView(getContext());
+        title.setText(info.title);
+        title.setTextColor(Themes.getAttrColor(getContext(), R.attr.folderTextColor));
+        title.setTextSize(20);
+        title.setGravity(android.view.Gravity.CENTER);
+        title.setPadding(0, 0, 0, dp(12));
+        mPanel.addView(title, new LinearLayout.LayoutParams(-1, -2));
+        ScrollView scroller = new ScrollView(getContext());
+        scroller.setFillViewport(false);
+        scroller.setVerticalScrollBarEnabled(false);
+        GridLayout grid = new GridLayout(getContext());
+        grid.setColumnCount(mColumns);
+        int cellHeight = Math.max(dp(88), Math.min(dp(112),
+                mActivityContext.getDeviceProfile().getAllAppsProfile().getCellHeightPx()));
+        for (ItemInfo item : contents) {
+            if (!(item instanceof WorkspaceItemInfo app)) continue;
+            BubbleTextView icon = (BubbleTextView) LayoutInflater.from(getContext())
+                    .inflate(R.layout.all_apps_icon, grid, false);
+            icon.applyFromWorkspaceItem(app);
+            icon.verifyHighRes();
+            icon.setOnClickListener(mActivityContext.getItemOnClickListener());
+            View.OnLongClickListener longClick = mActivityContext.getAllAppsItemLongClickListener();
+            icon.setOnLongClickListener(v -> {
+                // Stay open while the long-press menu shows (it is anchored to this icon); close
+                // only once the icon is actually dragged, as a folder does.
+                DragController dc = mActivityContext.getDragController();
+                if (dc != null) dc.addDragListener(mDragListener);
+                return longClick != null && longClick.onLongClick(v);
+            });
+            icon.setCustomActionsListener(mActivityContext.getAllAppsItemCustomActionsListener());
+            GridLayout.LayoutParams glp = new GridLayout.LayoutParams();
+            glp.width = 0;
+            glp.height = cellHeight;
+            glp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1, 1f);
+            grid.addView(icon, glp);
+        }
+        scroller.addView(grid, new ScrollView.LayoutParams(-1, -2));
+        mPanel.addView(scroller, new LinearLayout.LayoutParams(-1, 0, 1f));
+        addView(mPanel);
     }
 
-    private void animateOpenFrom(FolderIcon tile) {
-        mActivityContext.getDragLayer().getDescendantRectRelativeToSelf(tile, mTileRect);
-        mGridBehind = gridHolding(tile);
-        setVisibility(INVISIBLE);
-        getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
-            @Override
-            public boolean onPreDraw() {
-                getViewTreeObserver().removeOnPreDrawListener(this);
-                measureFlights();
-                setVisibility(VISIBLE);
-                setTileIconsHidden(true);
-                if (mGridBehind != null) {
-                    mGridBehind.setPivotX(mTileRect.centerX());
-                    mGridBehind.setPivotY(mTileRect.centerY());
-                    mGridBehind.setLayerType(LAYER_TYPE_HARDWARE, null);
-                }
-                for (BubbleTextView icon : mIcons) {
-                    icon.setLayerType(LAYER_TYPE_HARDWARE, null);
-                }
-                applyProgress(0f);
-                post(() -> runTo(1f, null));
-                return false;
-            }
-        });
+    @Override
+    protected void onMeasure(int widthSpec, int heightSpec) {
+        int width = MeasureSpec.getSize(widthSpec);
+        int height = MeasureSpec.getSize(heightSpec);
+        mBounds.set(mActivityContext.getFolderBoundingBox());
+        // Clamp to the drawer sheet that owns the tile; works for the home drawer and the
+        // taskbar drawer (TaskbarAllAppsContainerView extends ActivityAllAppsContainerView).
+        View sheet = findSheet();
+        if (sheet != null && sheet.getWidth() > 0) {
+            Rect rect = new Rect();
+            mActivityContext.getDragLayer().getDescendantRectRelativeToSelf(sheet, rect);
+            if (!mBounds.intersect(rect)) mBounds.set(rect);
+        }
+        if (!mBounds.intersect(0, 0, width, height)) mBounds.set(0, 0, width, height);
+        int margin = Math.min(dp(12), Math.min(mBounds.width(), mBounds.height()) / 4);
+        mBounds.inset(margin, margin);
+        int panelWidth = Math.max(1, Math.min(mBounds.width(), dp(32 + mColumns * 96)));
+        int cellHeight = Math.max(dp(88), Math.min(dp(112),
+                mActivityContext.getDeviceProfile().getAllAppsProfile().getCellHeightPx()));
+        int panelHeight = Math.max(1, Math.min(mBounds.height(), dp(80) + mRows * cellHeight));
+        mPanel.measure(MeasureSpec.makeMeasureSpec(panelWidth, MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(panelHeight, MeasureSpec.EXACTLY));
+        setMeasuredDimension(width, height);
     }
 
-    /** A simple, always-visible center fade + scale. (Expand-from-tile can be layered on later.) */
-    private void measureFlights() {
-        int count = mIcons.size();
-        mFromX = new float[count];
-        mFromY = new float[count];
-        mFromScale = new float[count];
-        mDrawnInTile = new boolean[count];
-        LargeFolderPreview preview = mTile.getLargeFolderPreview();
-        BaseDragLayer<?> dragLayer = mActivityContext.getDragLayer();
-        Rect dest = new Rect();
-        for (int i = 0; i < count; i++) {
-            BubbleTextView icon = mIcons.get(i);
-            icon.getIconBounds(mTmpRect);
-            icon.setPivotX(mTmpRect.exactCenterX());
-            icon.setPivotY(mTmpRect.exactCenterY());
-            dragLayer.getDescendantRectRelativeToSelf(icon, dest);
-            float destX = dest.left + mTmpRect.exactCenterX();
-            float destY = dest.top + mTmpRect.exactCenterY();
-            int destSize = Math.max(1, mTmpRect.width());
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        mActivityContext.getDragLayer().getDescendantRectRelativeToSelf(mTile, mTileRect);
+        int width = mPanel.getMeasuredWidth(), height = mPanel.getMeasuredHeight();
+        int x = Math.max(mBounds.left, Math.min(mTileRect.centerX() - width / 2,
+                mBounds.right - width));
+        int y = Math.max(mBounds.top, Math.min(mTileRect.centerY() - height / 2,
+                mBounds.bottom - height));
+        mPanel.layout(x, y, x + width, y + height);
+        mPanel.setPivotX(Math.max(0, Math.min(width, mTileRect.centerX() - x)));
+        mPanel.setPivotY(Math.max(0, Math.min(height, mTileRect.centerY() - y)));
+    }
 
-            if (preview != null) {
-                preview.getItemRect(i, mTmpRect);
-            } else {
-                mTmpRect.setEmpty();
-            }
-            mDrawnInTile[i] = !mTmpRect.isEmpty();
-            float srcX = mTileRect.left + mTmpRect.exactCenterX();
-            float srcY = mTileRect.top + mTmpRect.exactCenterY();
-            mFromX[i] = srcX - destX;
-            mFromY[i] = srcY - destY;
-            mFromScale[i] = mDrawnInTile[i] ? (float) mTmpRect.width() / destSize : 0.2f;
-        }
+    @Override
+    protected void handleClose(boolean animate) {
+        if (!mIsOpen) return;
+        mIsOpen = false;
+        mPanel.animate().cancel();
+        if (animate) {
+            mPanel.animate().alpha(0f).scaleX(.9f).scaleY(.9f).setDuration(150)
+                    .withEndAction(this::removeFromHost).start();
+        } else removeFromHost();
+    }
+
+    private void removeFromHost() {
+        restoreTile();
+        if (getParent() instanceof ViewGroup parent) parent.removeView(this);
+        if (mTile.isAttachedToWindow()) mTile.requestFocus();
+    }
+
+    private void restoreTile() {
+        DragController dc = mActivityContext.getDragController();
+        if (dc != null) dc.removeDragListener(mDragListener);
+        mTile.removeOnAttachStateChangeListener(mTileDetachListener);
+        mTile.setVisibility(VISIBLE);
     }
 
     @Nullable
-    private static View gridHolding(FolderIcon tile) {
-        for (ViewParent p = tile.getParent(); p instanceof View; p = p.getParent()) {
-            if (p instanceof ActivityAllAppsContainerView) {
-                return (View) p;
+    private View findSheet() {
+        for (View v = mTile; v != null;
+                v = v.getParent() instanceof View parent ? parent : null) {
+            if (v instanceof ActivityAllAppsContainerView<?> apps) {
+                return apps.getVisibleContainerView();
             }
         }
         return null;
     }
 
-    private void runTo(float target, @Nullable Runnable onEnd) {
-        float from = 0f;
-        if (mAnimator != null) {
-            from = (float) mAnimator.getAnimatedValue();
-            mAnimator.removeAllListeners();
-            mAnimator.cancel();
-        } else if (target == 0f) {
-            from = 1f;
-        }
-        mClosing = target == 0f;
-        mAnimator = ValueAnimator.ofFloat(from, target);
-        mAnimator.setDuration((long) ((target == 1f ? OPEN_DURATION : CLOSE_DURATION)
-                * Math.abs(target - from)));
-        mAnimator.setInterpolator(EMPHASIZED);
-        mAnimator.addUpdateListener(a -> applyProgress((float) a.getAnimatedValue()));
-        mAnimator.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                if (target == 1f) {
-                    for (BubbleTextView icon : mIcons) {
-                        icon.setLayerType(LAYER_TYPE_NONE, null);
-                    }
-                }
-                if (onEnd != null) {
-                    onEnd.run();
-                }
-            }
-        });
-        mAnimator.start();
-    }
-
-    private void applyProgress(float progress) {
-        float late = Utilities.boundToRange(
-                (progress - LATE_FADE_START) / (1f - LATE_FADE_START), 0f, 1f);
-        for (int i = 0; i < mIcons.size(); i++) {
-            BubbleTextView icon = mIcons.get(i);
-            float remaining = 1f - progress;
-            icon.setTranslationX(mFromX[i] * remaining);
-            icon.setTranslationY(mFromY[i] * remaining);
-            float scale = Utilities.mapRange(progress, mFromScale[i], 1f);
-            icon.setScaleX(scale);
-            icon.setScaleY(scale);
-            icon.setAlpha(mDrawnInTile[i] ? 1f : late);
-            icon.getFloatingViewTextAlpha().setValue(late);
-        }
-        mTitle.setAlpha(late);
-        mTitle.setTranslationY(dp(12) * (1f - progress));
-        if (mGridBehind != null) {
-            float away = mClosing
-                    ? Utilities.boundToRange(progress / BEHIND_RETURNS_BELOW, 0f, 1f)
-                    : Utilities.boundToRange(progress / BEHIND_GONE_BY, 0f, 1f);
-            mGridBehind.setAlpha(1f - away);
-            float behind = Utilities.mapRange(away, 1f, BEHIND_SCALE);
-            mGridBehind.setScaleX(behind);
-            mGridBehind.setScaleY(behind);
-        }
-        setScrimAlpha(Math.round(SCRIM_ALPHA * progress));
-    }
-
-    private void setTileIconsHidden(boolean hidden) {
-        LargeFolderPreview preview = mTile != null ? mTile.getLargeFolderPreview() : null;
-        if (preview != null) {
-            preview.setIconsHidden(hidden);
-        }
-    }
-
-    private void setScrimAlpha(int alpha) {
-        setBackgroundColor(Color.argb(Math.max(0, Math.min(255, alpha)), 0, 0, 0));
-    }
-
     @Override
-    protected void handleClose(boolean animate) {
-        if (!mIsOpen) {
-            return;
+    public boolean onControllerInterceptTouchEvent(MotionEvent event) {
+        if (event.getActionMasked() == MotionEvent.ACTION_DOWN
+                && !mActivityContext.getDragLayer().isEventOverView(mPanel, event)) {
+            close(true);
+            return true;
         }
-        mIsOpen = false;
-        DragController dragController = mActivityContext.getDragController();
-        if (!animate || mFromX == null
-                || (dragController != null && dragController.isDragging())) {
-            closeComplete();
-            return;
-        }
-        mScroller.scrollTo(0, 0);
-        for (BubbleTextView icon : mIcons) {
-            icon.setLayerType(LAYER_TYPE_HARDWARE, null);
-        }
-        runTo(0f, this::closeComplete);
-    }
-
-    private void closeComplete() {
-        // Release the backdrop snapshot / cross-window blur drawable, same as Folder#closeComplete.
-        if (mAnimator != null) {
-            mAnimator.removeAllListeners();
-            mAnimator.cancel();
-            mAnimator = null;
-        }
-        setTileIconsHidden(false);
-        if (mGridBehind != null) {
-            mGridBehind.setLayerType(LAYER_TYPE_NONE, null);
-            mGridBehind.setAlpha(1f);
-            mGridBehind.setScaleX(1f);
-            mGridBehind.setScaleY(1f);
-            mGridBehind = null;
-        }
-        if (getParent() instanceof ViewGroup parent) {
-            parent.removeView(this);
-        }
-    }
-
-    @Override
-    public boolean onControllerInterceptTouchEvent(MotionEvent ev) {
-            // Tap outside the panel closes the category page.
-        if (ev.getAction() != MotionEvent.ACTION_DOWN) {
-            return false;
-        }
-        BaseDragLayer<?> dragLayer = mActivityContext.getDragLayer();
-        for (BubbleTextView icon : mIcons) {
-            if (dragLayer.isEventOverView(icon, ev)) {
-                return false;
-            }
-        }
-        close(true);
-        return true;
-    }
-
-    @Override
-    public boolean onControllerTouchEvent(MotionEvent ev) {
         return false;
     }
 
     @Override
-    protected boolean isOfType(int type) {
-        return (type & TYPE_CADDY_CATEGORY) != 0;
-    }
+    public boolean onControllerTouchEvent(MotionEvent event) { return false; }
+
+    @Override
+    protected boolean isOfType(int type) { return (type & TYPE_CADDY_CATEGORY) != 0; }
 
     private int dp(float value) {
-        return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value,
-                getResources().getDisplayMetrics()));
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 }

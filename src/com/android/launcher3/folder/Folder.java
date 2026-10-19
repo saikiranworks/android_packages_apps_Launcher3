@@ -1343,11 +1343,13 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
         int centeredLeft = centerX - width / 2;
         int centeredTop = centerY - height / 2;
 
-        sTempRect.set(mActivityContext.getFolderBoundingBox());
+        sTempRect.set(getOpenFolderBounds());
         int left = Utilities.boundToRange(centeredLeft, sTempRect.left, sTempRect.right - width);
         int top = Utilities.boundToRange(centeredTop, sTempRect.top, sTempRect.bottom - height);
         int[] inOutPosition = new int[]{left, top};
-        mActivityContext.updateOpenFolderPosition(inOutPosition, sTempRect, width, height);
+        if (!mInfo.forceBigPreview) {
+            mActivityContext.updateOpenFolderPosition(inOutPosition, sTempRect, width, height);
+        }
         left = inOutPosition[0];
         top = inOutPosition[1];
 
@@ -1364,27 +1366,47 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
         mBackground.setBounds(0, 0, width, height);
     }
 
+    private Rect getOpenFolderBounds() {
+        Rect bounds = new Rect(mActivityContext.getFolderBoundingBox());
+        if (mInfo != null && mInfo.forceBigPreview
+                && mActivityContext instanceof com.android.launcher3.Launcher launcher) {
+            View panel = launcher.getAppsView().getVisibleContainerView();
+            if (panel != null && panel.getWidth() > 0) {
+                Rect sheet = new Rect();
+                mActivityContext.getDragLayer().getDescendantRectRelativeToSelf(panel, sheet);
+                bounds.intersect(sheet);
+            }
+        }
+        int inset = Math.round(8 * getResources().getDisplayMetrics().density);
+        if (bounds.width() > 2 * inset && bounds.height() > 2 * inset) bounds.inset(inset, inset);
+        return bounds;
+    }
+
     protected int getContentAreaHeight() {
         int height = Math.min(getMaxContentAreaHeight(),
                 mContent.getDesiredHeight());
-        return Math.max(height, MIN_CONTENT_DIMEN);
+        return Math.min(getMaxContentAreaHeight(), Math.max(height, MIN_CONTENT_DIMEN));
     }
 
     @VisibleForTesting
     int getMaxContentAreaHeight() {
         DeviceProfile grid = mActivityContext.getDeviceProfile();
-        return grid.getDeviceProperties().getAvailableHeightPx()
-                - grid.getWorkspaceProfile().getTotalWorkspacePadding().y - getFooterHeight();
+        return Math.max(1, Math.min(grid.getDeviceProperties().getAvailableHeightPx()
+                - grid.getWorkspaceProfile().getTotalWorkspacePadding().y - getFooterHeight(),
+                getOpenFolderBounds().height() - getPaddingTop() - getPaddingBottom()
+                        - getFooterHeight()));
     }
 
     @VisibleForTesting
     int getContentAreaWidth() {
-        return Math.max(mContent.getDesiredWidth(), MIN_CONTENT_DIMEN);
+        int available = Math.max(1, getOpenFolderBounds().width()
+                - getPaddingLeft() - getPaddingRight());
+        return Math.min(available, Math.max(mContent.getDesiredWidth(), MIN_CONTENT_DIMEN));
     }
 
     @VisibleForTesting
     int getFolderWidth() {
-        return getPaddingLeft() + getPaddingRight() + mContent.getDesiredWidth();
+        return getPaddingLeft() + getPaddingRight() + getContentAreaWidth();
     }
 
     @VisibleForTesting

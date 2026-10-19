@@ -43,8 +43,10 @@ public class AllAppsGridAdapter extends BaseAllAppsAdapter {
 
     public static final String TAG = "AppsGridAdapter";
 
-    /** Caddy category tiles per row. Also a factor of the span count; see setAppsPerRow. */
-    public static final int FOLDERS_PER_ROW = 2;
+    /** A category occupies roughly two app columns; DPI changes the column count. */
+    public static int foldersPerRow(int appColumns) {
+        return Math.max(1, appColumns / 2);
+    }
     private final AppsGridLayoutManager mGridLayoutMgr;
     private final CopyOnWriteArrayList<OnLayoutCompletedListener> mOnLayoutCompletedListeners =
             new CopyOnWriteArrayList<>();
@@ -219,11 +221,10 @@ public class AllAppsGridAdapter extends BaseAllAppsAdapter {
                 totalSpans *= itemPerRow;
             }
         }
-        // Caddy folders take half a row each, so the span count has to divide by two as well --
-        // with an odd column count (5 is the default) they would otherwise round down to 2/5 of
-        // the width each and leave a column of dead space on the right.
-        if (totalSpans % FOLDERS_PER_ROW != 0) {
-            totalSpans *= FOLDERS_PER_ROW;
+        // Include folder columns in the span count, including odd app column counts.
+        int folderColumns = foldersPerRow(mAppsPerRow);
+        if (totalSpans % folderColumns != 0) {
+            totalSpans *= folderColumns;
         }
         mGridLayoutMgr.setSpanCount(totalSpans);
     }
@@ -250,11 +251,7 @@ public class AllAppsGridAdapter extends BaseAllAppsAdapter {
                 return totalSpans;
             }
             if (viewType == VIEW_TYPE_FOLDER) {
-                // Caddy category tiles are laid out two per row, each taking exactly half the
-                // grid. Sizing them off mAppsPerRow instead (2 of 5 icon columns) left a dead
-                // column on the right, so the pair sat flush left with the gutter all on one
-                // side; half-spans keep the margins even like the iOS App Library.
-                return Math.max(1, totalSpans / FOLDERS_PER_ROW);
+                return totalSpans / foldersPerRow(mAppsPerRow);
             }
             if (isIconViewType(viewType)) {
                 return totalSpans / mAppsPerRow;
