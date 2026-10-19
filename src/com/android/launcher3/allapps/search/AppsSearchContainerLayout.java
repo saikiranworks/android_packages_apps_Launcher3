@@ -52,6 +52,7 @@ import com.android.launcher3.allapps.AllAppsStore;
 import com.android.launcher3.allapps.BaseAllAppsAdapter.AdapterItem;
 import com.android.launcher3.allapps.PrivateProfileManager;
 import com.android.launcher3.allapps.SearchUiManager;
+import com.android.launcher3.search.SearchAlgorithm;
 import com.android.launcher3.search.SearchCallback;
 import com.android.launcher3.search.universal.UniversalSearchAlgorithm;
 import com.android.launcher3.util.ApiWrapper;
@@ -217,25 +218,11 @@ public class AppsSearchContainerLayout extends ExtendedEditText
         float qsbWidgetPadding = res.getDimension(R.dimen.qsb_widget_vertical_padding);
         float innerHeight = qsbWidgetHeight - 2 * qsbWidgetPadding;
         return (innerHeight / 2) * ((float)LauncherPrefs.SEARCH_RADIUS_SIZE.get(context) / 100f);
-        if (!mAppsView.isAppLibrary()) {
-            offsetTopAndBottom(mContentOverlap);
-        }
     }
 
     @Override
     public void initializeSearch(ActivityAllAppsContainerView<?> appsView) {
         mAppsView = appsView;
-        // Universal search (apps, shortcuts, settings, tiles, contacts, files, calculator...).
-        UniversalSearchAlgorithm algorithm =
-                new UniversalSearchAlgorithm(getContext(), mLauncher.getUiExecutor());
-        algorithm.setQueryHandler(query -> {
-            setText(query);
-            setSelection(query.length());
-        });
-        if (isFloatingPill()) {
-            setMinHeight(getResources().getDimensionPixelSize(
-                    R.dimen.all_apps_floating_search_height));
-        }
         // The drawer searches its apps, as iOS's App Library does; everything else is Spotlight's.
         SearchAlgorithm<AdapterItem> algorithm;
         if (LauncherPrefs.isAppLibrary(getContext())) {
@@ -318,18 +305,20 @@ public class AppsSearchContainerLayout extends ExtendedEditText
             return;
         }
         MarginLayoutParams mlp = (MarginLayoutParams) getLayoutParams();
-        if (mAppsView.getSearchUiDelegate().isSearchBarFloating()
-                || mLauncher.getDeviceProfile().getDeviceProperties().isLargeScreen()) {
         if (mAppsView.isAppLibrary()) {
             mSystemBottomInset = insets.bottom;
             mlp.topMargin = 0;
             mlp.bottomMargin = mSystemBottomInset + mImeInset;
-        } else {
+        } else if (mAppsView.getSearchUiDelegate().isSearchBarFloating()
+                || mLauncher.getDeviceProfile().getDeviceProperties().isLargeScreen()) {
             mlp.topMargin = insets.top;
+            mSystemBottomInset = insets.bottom + bottomGap();
+            mlp.bottomMargin = mSystemBottomInset + mImeInset;
+        } else {
+            mSystemBottomInset = insets.bottom + bottomGap();
+            mlp.topMargin = 0;
+            mlp.bottomMargin = mSystemBottomInset + mImeInset;
         }
-        mSystemBottomInset = insets.bottom + bottomGap();
-        mlp.topMargin = 0;
-        mlp.bottomMargin = mSystemBottomInset + mImeInset;
         requestLayout();
     }
 

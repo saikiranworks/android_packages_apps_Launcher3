@@ -885,7 +885,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
             }
         } else if (mOneUiPagedView != null) {
             mainRecyclerView = null;
-            workRecyclerView = null;
+            secondRecyclerView = null;
             mAH.get(AdapterHolder.WORK).mRecyclerView = null;
             // No tabs in the paged style: show personal and work apps together.
             mAH.get(AdapterHolder.MAIN).mAppsList.updateItemFilter(
@@ -907,14 +907,14 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                     mListStyleViewPool = new RecyclerView.RecycledViewPool();
                 }
                 mainRecyclerView.setRecycledViewPool(mListStyleViewPool);
-                if (workRecyclerView != null) {
-                    workRecyclerView.setRecycledViewPool(mListStyleViewPool);
+                if (secondRecyclerView != null) {
+                    secondRecyclerView.setRecycledViewPool(mListStyleViewPool);
                 }
                 mainRecyclerView.updatePoolSize();
             } else {
                 setUpCustomRecyclerViewPool(
                         mainRecyclerView,
-                        workRecyclerView,
+                        secondRecyclerView,
                         mActivityContext.getActivityComponent().getSharedAppsPool());
             }
         }
@@ -923,7 +923,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
             mFastScroller.setVisibility(mShowFastScroller ? VISIBLE : INVISIBLE);
             mFastScrollLetterLayout.setVisibility(mShowFastScroller ? VISIBLE : INVISIBLE);
         }
-        if (secondRecyclerView != null && secondRecyclerView != workRecyclerView) {
+        if (secondRecyclerView != null && secondRecyclerView != mainRecyclerView) {
             setUpCustomRecyclerViewPool(
                     secondRecyclerView,
                     null,
@@ -991,12 +991,6 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                 : R.layout.all_apps_rv_layout;
         final View rvContainer = getLayoutInflater().inflate(layout, this, false);
         addView(rvContainer, index);
-        ViewGroup rvParent = (ViewGroup) oldView.getParent();
-        int index = rvParent.indexOfChild(oldView);
-        rvParent.removeView(oldView);
-        int layout = showTabs ? R.layout.all_apps_tabs : R.layout.all_apps_rv_layout;
-        final View rvContainer = getLayoutInflater().inflate(layout, rvParent, false);
-        rvParent.addView(rvContainer, index);
         if (showTabs) {
             mViewPager = (AllAppsPagedView) rvContainer;
             mViewPager.initParentViews(this);
@@ -1030,12 +1024,11 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         applyBottomSearchFade(false);
         if (isSearchBarHidden()) {
             mSearchContainer.setVisibility(View.GONE);
-        if (isSearchBarFloating() || isAppLibrary()) {
             alignParentTop(rvContainer, showTabs);
-            alignParentTop(getSearchRecyclerView(), /* includeTabsMargin= */ false);
+            alignParentTop(getSearchRecyclerView(), /* tabs= */ false);
         } else {
             mSearchContainer.setVisibility(View.VISIBLE);
-            if (isSearchBarFloating()) {
+            if (isSearchBarFloating() || isAppLibrary()) {
                 alignParentTop(rvContainer, showTabs);
                 alignParentTop(getSearchRecyclerView(), /* tabs= */ false);
             } else if (isSearchBarAtBottom()) {
@@ -1048,11 +1041,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                 layoutBelowSearchContainer(rvContainer, showTabs);
                 layoutBelowSearchContainer(getSearchRecyclerView(), /* tabs= */ false);
             }
-            layoutBelowSearchContainer(rvContainer, showTabs);
-            layoutBelowSearchContainer(getSearchRecyclerView(), /* includeTabsMargin= */ false);
         }
-        alignParentTop(rvContainer, showTabs);
-        alignParentTop(getSearchRecyclerView(), /* includeTabsMargin= */ false);
 
         if (mOneUiPagedView != null
                 && rvContainer.getLayoutParams() instanceof RelativeLayout.LayoutParams rvLp) {
@@ -1110,6 +1099,8 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
             mSearchContainer.bringToFront();
         }
         applyOneUiPagePadding();
+        }
+        }
     }
 
     /**
@@ -1678,11 +1669,11 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
         if (!grid.isVerticalBarLayout() || FeatureFlags.enableResponsiveWorkspace()) {
             // Fullscreen styles start right below the status bar instead of the sheet offset.
-            int topPadding = isFullscreenStyle()
-                    ? insets.top
             int topPadding = isAppLibrary()
                     ? insets.top + getResources().getDimensionPixelSize(R.dimen.app_library_top_gap)
-                    : grid.getAllAppsProfile().getPadding().top;
+                    : isFullscreenStyle()
+                            ? insets.top
+                            : grid.getAllAppsProfile().getPadding().top;
             setPadding(grid.getAllAppsProfile().getLeftRightMargin(), topPadding,
                     grid.getAllAppsProfile().getLeftRightMargin(), 0);
         }
@@ -1951,8 +1942,6 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         // The paged style shows personal and work apps on the same pages.
         return (mHasWorkApps && !AppDrawerStyle.isVerticalPaged(mAppDrawerStyle))
                 || showCategoriesTab();
-        return mHasWorkApps || !isAppLibrary();
-        return mHasWorkApps || (!isAppLibrary() && isCaddyEnabled());
     }
 
     /**
@@ -1965,7 +1954,6 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
     private boolean isCaddyEnabled() {
         return !LauncherPrefs.DRAWER_LIST.get(mActivityContext.asContext());
-        return isAppLibrary() || !LauncherPrefs.DRAWER_LIST.get(mActivityContext.asContext());
     }
 
     public int getSearchCancelWidth() {
@@ -1975,8 +1963,6 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
     public boolean isAppLibrary() {
         return LauncherPrefs.isAppLibrary(mActivityContext.asContext());
-        Context context = mActivityContext.asContext();
-        return LauncherPrefs.APP_LIBRARY.get(context) || !LauncherPrefs.DRAWER_LIST.get(context);
     }
 
     /**
@@ -2149,6 +2135,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
             Canvas canvas, float scale, @Px int bottomOffsetPx) {
         if (isFullscreenStyle()) {
             drawFullscreenBackgroundOnScrim(canvas, scale, bottomOffsetPx);
+        }
         if (isAppLibrary()) {
             return;
         }

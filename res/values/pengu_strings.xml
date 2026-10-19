@@ -1,9 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
-     Copyright (C) 2026 PenguinOS
-     SPDX-License-Identifier: Apache-2.0
--->
-<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+<?xml version='1.0' encoding='utf-8'?>
+<resources xmlns:ns0="urn:oasis:names:tc:xliff:document:1.2">
 
     <string name="pref_sleep_gesture_title">Double tap to sleep</string>
     <string name="pref_sleep_gesture_summary">Double tap on empty space for screen off</string>
@@ -13,10 +9,6 @@
     <string name="app_library_replaces_layout">Disable the App Library to change this</string>
     <string name="search_bar_bottom_title">Redesigned search bar</string>
     <string name="search_bar_bottom_summary">Put the app drawer search bar at the bottom. Off uses the stock bar at the top.</string>
-    <string name="search_section_conversations">Chats</string>
-    <string name="search_section_shortcuts">Shortcuts</string>
-    <string name="search_section_contacts">Contacts</string>
-    <string name="search_section_settings">Settings</string>
     <string name="search_sources_title">Search</string>
     <string name="search_shortcuts_title">App shortcuts</string>
     <string name="search_shortcuts_summary">Include shortcuts published by apps in drawer search</string>
@@ -26,15 +18,8 @@
     <string name="search_contacts_summary">Include contacts. Needs permission to read your contacts.</string>
     <string name="search_settings_title">Settings</string>
     <string name="search_settings_summary">Include Settings entries so you can jump straight to a page</string>
-    <string name="search_section_qs_tiles">Quick settings</string>
     <string name="search_qs_tiles_title">Quick settings tiles</string>
     <string name="search_qs_tiles_summary">Find quick settings tiles and switch them on or off right from search</string>
-    <string name="search_section_calculator">Calculator</string>
-    <string name="search_section_files">Files</string>
-    <string name="search_section_events">Calendar</string>
-    <string name="search_section_actions">Actions</string>
-    <string name="search_action_web">Search the web for \"%1$s\"</string>
-    <string name="search_action_in_app">Search in %1$s</string>
     <string name="search_calculator_title">Calculator</string>
     <string name="search_calculator_summary">Answer sums, unit and currency conversions, time zones and date math as you type. Currency rates are downloaded from the ECB.</string>
     <string name="search_files_title">Files and media</string>
@@ -43,54 +28,8 @@
     <string name="search_events_summary">Include calendar events. Needs permission to read your calendar.</string>
     <string name="search_actions_title">Web and in-app search</string>
     <string name="search_actions_summary">Offer to search the web, inside apps or in your app store, and to look up definitions</string>
-    <string name="search_permission_summary">Tap to allow access in app info</string>
-    <string name="search_permission_contacts">Allow contacts access to search contacts</string>
-    <string name="search_permission_calendar">Allow calendar access to search events</string>
-    <string name="search_permission_files">Allow media access to search files</string>
-    <string name="search_section_quick_actions">Quick actions</string>
     <string name="search_quick_actions_title">Quick actions</string>
     <string name="search_quick_actions_summary">Understand phrases like \"timer 5m\", \"alarm 7:30\", \"text Sam\", phone numbers and web addresses</string>
-    <string name="search_action_timer">Set a timer for %1$s</string>
-    <string name="search_action_alarm">Set an alarm for %1$s</string>
-    <string name="search_action_call">Call %1$s</string>
-    <string name="search_action_text">Message %1$s</string>
-    <string name="search_action_email">Email %1$s</string>
-    <string name="search_action_add_contact">Add to contacts</string>
-    <string name="search_action_open">Open %1$s</string>
-    <string name="search_action_reminder">Add \"%1$s\" to calendar</string>
-    <plurals name="search_duration_seconds">
-        <item quantity="one">%d second</item>
-        <item quantity="other">%d seconds</item>
-    </plurals>
-    <plurals name="search_duration_minutes">
-        <item quantity="one">%d minute</item>
-        <item quantity="other">%d minutes</item>
-    </plurals>
-    <plurals name="search_duration_hours">
-        <item quantity="one">%d hour</item>
-        <item quantity="other">%d hours</item>
-    </plurals>
-    <string name="search_section_apps">Apps</string>
-    <string name="search_section_app_content">From apps</string>
-    <string name="search_section_web_suggestions">Web suggestions</string>
-    <string name="search_section_history">Recent searches</string>
-    <string name="search_filter_all">All</string>
-    <string name="search_show_more">Show %1$d more</string>
-    <string name="search_history_clear">Clear search history</string>
-    <string name="search_action_store">Search \"%1$s\" in %2$s</string>
-    <string name="search_action_define">Define \"%1$s\"</string>
-    <string name="search_action_define_in">Look up \"%1$s\" in %2$s</string>
-    <string name="search_time_in">%1$s · %2$s · %3$s</string>
-    <string name="search_menu_copy">Copy</string>
-    <string name="search_menu_call">Call</string>
-    <string name="search_menu_message">Message</string>
-    <string name="search_menu_copy_number">Copy number</string>
-    <string name="search_menu_share">Share</string>
-    <string name="search_menu_open_with">Open with…</string>
-    <string name="search_menu_open_settings">Open settings</string>
-    <string name="search_menu_add_to_home">Add to home screen</string>
-    <string name="search_menu_app_info">App info</string>
-    <string name="search_pin_unsupported">Couldn\'t add to the home screen</string>
     <string name="search_app_content_title">Content from apps</string>
     <string name="search_app_content_summary">Include notes, messages and other items apps share with the system search index</string>
     <string name="search_web_suggestions_title">Web suggestions</string>
@@ -120,20 +59,11 @@
         <item>bing</item>
         <item>brave</item>
     </string-array>
-    <string name="search_section_photos">Photos</string>
-    <string name="search_section_screenshots">Recent screenshots</string>
-    <string name="search_photo">Photo</string>
     <string name="search_action_in_google_photos">Search \"%1$s\" in Google Photos</string>
     <string name="search_photos_title">Photos by content</string>
     <string name="search_photos_summary">Find photos by what is in them, like \"cat\" or \"beach\". Photos are labelled on this device, mostly while charging.</string>
     <string name="search_recent_screenshots_title">Recent screenshots</string>
     <string name="search_recent_screenshots_summary">Show your latest screenshots in search before you type</string>
-    <string name="search_whatsapp">WhatsApp</string>
-    <string name="search_history_remove">Remove from recent searches</string>
-    <string name="search_timer_set">Timer set for %1$s</string>
-    <string name="search_alarm_set">Alarm set for %1$s</string>
-    <string name="search_currency_source">%1$s · ECB rates, %2$s</string>
-    <string name="search_currency_source_stale">%1$s · ECB rates from %2$s, offline</string>
     <string name="moments_title">Moments</string>
     <string name="moments_summary">A calmer phone with only the apps you choose</string>
     <string name="moments_picker_title">What\'s your next Moment?</string>
@@ -284,13 +214,11 @@
     <string name="outdoor_full_screen">Temporary full screen</string>
     <string name="outdoor_settings">Settings</string>
     <string name="outdoor_exit">Exit</string>
-    <!-- The pill above the dock that opens universal search -->
-    <string name="home_search_pill">Search</string>
-    <!-- Spotlight's field and its suggestions before anything is typed -->
+    
     <string name="spotlight_hint">Search</string>
     <string name="spotlight_voice">Voice search</string>
     <string name="spotlight_clipboard_link">Link on Clipboard</string>
     <string name="spotlight_open_link">Open Link</string>
     <string name="spotlight_now_playing">Now Playing</string>
-    <string name="spotlight_play">Play <xliff:g id="title" example="CHANEL">%1$s</xliff:g></string>
+    <string name="spotlight_play">Play <ns0:g id="title" example="CHANEL">%1$s</ns0:g></string>
 </resources>

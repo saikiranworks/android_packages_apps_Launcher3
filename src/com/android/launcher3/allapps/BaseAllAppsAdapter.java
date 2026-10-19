@@ -32,6 +32,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnFocusChangeListener;
 import android.view.View.OnLongClickListener;
+import android.widget.FrameLayout;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -43,7 +44,10 @@ import com.android.launcher3.BubbleTextView;
 import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.R;
 import com.android.launcher3.allapps.search.SearchAdapterProvider;
+import com.android.launcher3.folder.FolderIcon;
+import com.android.launcher3.util.Themes;
 import com.android.launcher3.model.data.AppInfo;
+import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.popup.PopupContainerWithArrow;
 import com.android.launcher3.search.universal.FuzzyMatcher;
 import com.android.launcher3.search.universal.SearchHistory;
@@ -81,15 +85,11 @@ public abstract class BaseAllAppsAdapter
     public static final int VIEW_TYPE_SEARCH_TOP_RESULT = 1 << 12;
     public static final int VIEW_TYPE_SEARCH_FILTERS = 1 << 13;
     public static final int VIEW_TYPE_SEARCH_THUMBNAILS = 1 << 14;
-    public static final int NEXT_ID = 15;
 
-    // Common view type masks
-    public static final int VIEW_TYPE_MASK_DIVIDER = VIEW_TYPE_ALL_APPS_DIVIDER;
-    public static final int VIEW_TYPE_MASK_ICON = VIEW_TYPE_ICON | VIEW_TYPE_PRIVATE_SPACE_APP_ICON;
-    public static final int VIEW_TYPE_FOLDER = 1 << 10;
+    public static final int VIEW_TYPE_FOLDER = 1 << 15;
 
-    public static final int VIEW_TYPE_ICON_ROW = 1 << 11;
-    public static final int NEXT_ID = 11;
+    public static final int VIEW_TYPE_ICON_ROW = 1 << 16;
+    public static final int NEXT_ID = 17;
 
     // Common view type masks
     public static final int VIEW_TYPE_MASK_DIVIDER = VIEW_TYPE_ALL_APPS_DIVIDER;
@@ -131,6 +131,7 @@ public abstract class BaseAllAppsAdapter
         public int rowAppIndex;
         // The associated ItemInfoWithIcon for the item
         public AppInfo itemInfo = null;
+        public FolderInfo folderInfo = null;
         // Private App Decorator
         public SectionDecorationInfo decorationInfo = null;
         // Result from a non-app universal search source
@@ -282,7 +283,6 @@ public abstract class BaseAllAppsAdapter
         mApps = apps;
         mLayoutInflater = inflater;
 
-        mTextColor = AppDrawerStyle.getContentColor(activityContext.asContext());
         boolean forceDarkText = LauncherPrefs.ALL_APPS_DARK_TEXT.get(activityContext.asContext());
         if (forceDarkText) {
             mTextColor = activityContext.asContext().getResources().getColor(R.color.all_apps_label_color_dark_forced, null);
@@ -558,6 +558,8 @@ public abstract class BaseAllAppsAdapter
      */
     protected String getDrawerStyle() {
         return AppDrawerStyle.NORMAL;
+    }
+
     private BubbleTextView getIconRowOnCreateSetup(ViewGroup parent) {
         BubbleTextView icon = (BubbleTextView) mLayoutInflater.inflate(
                 R.layout.all_apps_icon_row, parent, false);

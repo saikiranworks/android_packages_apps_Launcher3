@@ -70,17 +70,10 @@ public class AllAppsSearchUiDelegate {
 
     /** The layout inflater for All Apps and search UI. */
     public LayoutInflater getLayoutInflater() {
-        return LayoutInflater.from(mAppsView.getContext());
         Context context = mAppsView.getContext();
         if (mAppsView.isAppLibrary()) {
             if (mLibraryContext == null) {
                 mLibraryContext = AppLibraryTheme.wrap(context);
-        Context context = mAppsView.getContext();
-        if (mAppsView.isAppLibrary()) {
-            // The App Library sits on the blurred wallpaper, so its text stays light even in
-            // light theme.
-            if (mLibraryContext == null) {
-                mLibraryContext = new ContextThemeWrapper(context, R.style.AppTheme_Dark);
             }
             return LayoutInflater.from(context).cloneInContext(mLibraryContext);
         }

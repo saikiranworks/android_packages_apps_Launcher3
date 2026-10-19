@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="pref_themed_icons_title">Themed icons in app drawer</string>
+    <string name="pref_themed_icons_summary">Use themed icons in the app drawer</string>
+    <string name="drawer_search_summary">Show the search bar in the app drawer</string>
+    <string name="system_apps_category_label">System Apps</string>
+    <string name="google_apps_category_label">Google Apps</string>
+    <string name="others_category_label">Others</string>
     <string name="drawer_list_title">Flat app list</string>
     <string name="drawer_list_summary">Off shows a Categories tab with apps grouped by type</string>
     <string name="category_art_and_design">Art &amp; design</string>

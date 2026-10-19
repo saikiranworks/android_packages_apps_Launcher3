@@ -1464,7 +1464,6 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
         // The drawer is the library's content, so opening it is the whole of the gesture. The
         // state manager owns the animation and the way back out from here.
         return mIsRtl ? getScrollX() <= computeMinScroll() : getScrollX() >= computeMaxScroll();
-        return mAppLibraryEdgeEffect != null;
     }
 
     private void onAppLibraryProgress(float progress) {

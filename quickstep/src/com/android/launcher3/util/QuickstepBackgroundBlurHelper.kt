@@ -90,6 +90,8 @@ constructor(
 
         captureBackdrop()
 
+        // Only hidden for the snapshot; put them back, or the folder's name stays hidden on
+        // the home screen after it closes.
         folderIcon.folderName.visibility = folderNameVisibility
         folderIcon.setIconVisible(isIconVisible)
     }
@@ -119,9 +121,6 @@ constructor(
         workspaceBlurRenderNode.setPosition(0, 0, dragLayer.getWidth(), dragLayer.getHeight())
 
         openFolders.forEach { it.visibility = View.VISIBLE; it.invalidate() }
-
-        folderIcon.folderName.visibility = folderNameVisibility
-        folderIcon.setIconVisible(isIconVisible)
     }
 
     override fun drawFolderBlur(canvas: Canvas, pathWrapper: PathWrapper?, view: View) {

@@ -1,6 +1,7 @@
 package com.android.launcher3.search.universal;
 
 import static com.android.launcher3.allapps.BaseAllAppsAdapter.VIEW_TYPE_EMPTY_SEARCH;
+import com.android.launcher3.allapps.search.DefaultAppSearchAlgorithm;
 
 import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
@@ -61,9 +62,11 @@ public class UniversalSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
     private Consumer<String> mQueryHandler = q -> { };
     // Spotlight shows suggested apps before anything is typed, as iOS does.
     private volatile boolean mSpotlight;
+    private final boolean mAppLibrary;
 
     public UniversalSearchAlgorithm(Context context, LooperExecutor uiExecutor) {
         mContext = context.getApplicationContext();
+        mAppLibrary = LauncherPrefs.isAppLibrary(context);
         mAppState = LauncherAppState.getInstance(context);
         mResultHandler = new Handler(uiExecutor.getLooper());
         mWorker = new Handler(Executors.UI_HELPER_EXECUTOR.getLooper());
@@ -129,8 +132,6 @@ public class UniversalSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
     private AppMatches matchApps(List<AppInfo> apps, String query) {
         String lower = query.trim().toLowerCase(Locale.getDefault());
         if (lower.isEmpty()) {
-            if (mSpotlight) {
-                return new AppMatches(suggestedApps(apps), 0);
             // Spotlight suggests apps even with the App Library on; only the library itself
             // lists them all.
             if (mSpotlight) {

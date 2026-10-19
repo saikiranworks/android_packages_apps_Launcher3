@@ -137,14 +137,6 @@ public class AllAppsState extends LauncherState {
                 : context.getDeviceProfile().getBottomSheetProfile().getBottomSheetDepth();
     }
 
-    @Override
-    public PageAlphaProvider getWorkspacePageAlphaProvider(Launcher launcher) {
-        if (hasAppLibrary(launcher)) {
-            return DEFAULT_ALPHA_PROVIDER;
-        }
-        return super.getWorkspacePageAlphaProvider(launcher);
-    }
-
     private static boolean hasAppLibrary(Launcher launcher) {
         return launcher.getWorkspace() != null && launcher.getWorkspace().hasAppLibrary();
     }
@@ -195,9 +187,6 @@ public class AllAppsState extends LauncherState {
             return true;
         }
         return !AppDrawerStyle.isFullscreen(AppDrawerStyle.get(context));
-            return HOTSEAT_ICONS;
-        }
-        return ALL_APPS_CONTENT | FLOATING_SEARCH_BAR | HOTSEAT_ICONS;
     }
 
     @Override
@@ -229,16 +218,13 @@ public class AllAppsState extends LauncherState {
             // No scrim.
             return super.getWorkspaceScrimColor(launcher);
         }
+        if (hasAppLibrary(launcher)) {
+            return super.getWorkspaceScrimColor(launcher);
+        }
         int backgroundColor = AppDrawerStyle.applyDrawerOpacity(launcher,
                 AppDrawerStyle.isCustomColorEnabled(launcher)
                         ? AppDrawerStyle.getCustomBackgroundColor(launcher)
                         : Themes.getAttrColor(launcher, R.attr.allAppsScrimColor));
-        if (hasAppLibrary(launcher)) {
-            return super.getWorkspaceScrimColor(launcher);
-        }
-        int backgroundColor = ColorUtils.setAlphaComponent(
-                Themes.getAttrColor(launcher, R.attr.allAppsScrimColor),
-                LauncherPrefs.APP_DRAWER_OPACITY.get(launcher) * 255 / 100);
         return new ScrimColors(backgroundColor, /* foregroundColor */ Color.TRANSPARENT);
     }
 }

@@ -70,9 +70,6 @@ public class DefaultAppSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
     @Override
     public void doSearch(String query, SearchCallback<AdapterItem> callback) {
         mAppState.getModel().enqueueModelUpdateTask((taskController, dataModel, apps) ->  {
-            ArrayList<AdapterItem> result = getTitleMatchResult(mAppState.getContext(), apps.data,
-                    query);
-            if (mAddNoResultsMessage && result.isEmpty()) {
             ArrayList<AdapterItem> result =
                     getTitleMatchResult(apps.data, query, mAppLibrary);
             if (mAddNoResultsMessage && result.isEmpty() && !(mAppLibrary && query.isEmpty())) {
@@ -95,8 +92,6 @@ public class DefaultAppSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
      * Filters {@link AppInfo}s matching specified query
      */
     @AnyThread
-    public static ArrayList<AdapterItem> getTitleMatchResult(Context context, List<AppInfo> apps,
-            String query) {
     public static ArrayList<AdapterItem> getTitleMatchResult(List<AppInfo> apps, String query) {
         return getTitleMatchResult(apps, query, false);
     }
@@ -111,15 +106,6 @@ public class DefaultAppSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
         StringMatcherUtility.StringMatcher matcher =
                 StringMatcherUtility.StringMatcher.getInstance();
 
-        int total = apps.size();
-        UserManager userManager = UserManager.get(context);
-        for (int i = 0; i < total; i++) {
-            AppInfo info = apps.get(i);
-            if (userManager.isQuietModeEnabled(info.user)) {
-                continue;
-            }
-            if (StringMatcherUtility.matches(queryTextLower, info.title.toString(), matcher)) {
-                result.add(AdapterItem.asApp(info));
         boolean takeAll = asRows && queryTextLower.isEmpty();
         if (asRows) {
             apps = new ArrayList<>(apps);

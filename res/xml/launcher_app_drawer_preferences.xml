@@ -200,11 +200,17 @@
         android:key="pref_drawer_list"
         android:title="@string/drawer_list_title"
         android:summary="@string/drawer_list_summary"
+        android:defaultValue="true"
+        android:persistent="true"
+        launcher:iconSpaceReserved="false" />
+
+    <SwitchPreferenceCompat
         android:key="pref_app_library"
         android:title="@string/app_library_title"
         android:summary="@string/app_library_summary"
         android:defaultValue="false"
-        android:persistent="true" />
+        android:persistent="true"
+        launcher:iconSpaceReserved="false" />
 
     <SwitchPreferenceCompat
         android:key="pref_allapps_themed_icons"
@@ -232,13 +238,6 @@
         android:title="@string/drawer_scrollbar_title"
         android:summary="@string/drawer_scrollbar_summary"
         android:defaultValue="true"
-        launcher:iconSpaceReserved="false" />
-
-    <SwitchPreferenceCompat
-        android:key="pref_drawer_show_labels"
-        android:title="@string/drawer_show_labels"
-        android:defaultValue="true"
-        android:persistent="true"
         launcher:iconSpaceReserved="false" />
 
     <SwitchPreferenceCompat

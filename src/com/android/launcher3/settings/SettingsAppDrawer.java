@@ -116,9 +116,8 @@ public class SettingsAppDrawer extends CollapsingToolbarBaseActivity
                 LauncherPrefs.APP_DRAWER_SORT_MODE.getSharedPrefKey().equals(key) ||
                 LauncherPrefs.APP_DRAWER_CUSTOM_COLOR_ENABLED.getSharedPrefKey().equals(key) ||
                 LauncherPrefs.APP_DRAWER_CUSTOM_COLOR_LIGHT.getSharedPrefKey().equals(key) ||
-                LauncherPrefs.APP_DRAWER_CUSTOM_COLOR_DARK.getSharedPrefKey().equals(key)) {
-                LauncherPrefs.SEARCH_BAR_BOTTOM.getSharedPrefKey().equals(key) ||
-                LauncherPrefs.ALL_APPS_DARK_TEXT.getSharedPrefKey().equals(key)) {
+                LauncherPrefs.APP_DRAWER_CUSTOM_COLOR_DARK.getSharedPrefKey().equals(key) ||
+                LauncherPrefs.SEARCH_BAR_BOTTOM.getSharedPrefKey().equals(key)) {
             LauncherAppState.INSTANCE.executeIfCreated(app -> app.setNeedsRestart());
         }
     }
@@ -305,6 +304,10 @@ public class SettingsAppDrawer extends CollapsingToolbarBaseActivity
             layout.setSummary(libraryOn
                     ? R.string.app_library_replaces_layout
                     : R.string.drawer_list_summary);
+        }
+
+        protected boolean initPreference(Preference preference) {
+            return true;
         }
 
         private void initPreferences(PreferenceGroup group) {

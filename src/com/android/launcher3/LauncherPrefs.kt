@@ -292,6 +292,7 @@ constructor(@ApplicationContext private val encryptedContext: Context) {
         @JvmField val DRAWER_SEARCH = backedUpItem("pref_drawer_search", true)
         @JvmField val DRAWER_LIST = backedUpItem("pref_drawer_list", true)
         @JvmField val APP_LIBRARY = backedUpItem("pref_app_library", false)
+        @JvmField val SEARCH_BAR_BOTTOM = backedUpItem("pref_search_bar_bottom", true)
         @JvmField val FONT_SIZE = backedUpItem("pref_custom_font_size", 100)
         @JvmField val HOTSEAT_OPACITY = backedUpItem("pref_hotseat_opacity", 40)
         @JvmField val ICON_SIZE = backedUpItem("pref_custom_icon_size", 100)
@@ -311,14 +312,12 @@ constructor(@ApplicationContext private val encryptedContext: Context) {
         @JvmField val WALLPAPER_CAROUSEL_LOCKSCREEN = backedUpItem("pref_wallpaper_carousel_lockscreen", true)
         @JvmField val WALLPAPER_SCROLLING = backedUpItem("pref_allow_wallpaper_scrolling", true)
         @JvmField val WORK_EDU_STEP = backedUpItem("showed_work_profile_edu", 0)
-        @JvmField val WORKSPACE_LOCK = backedUpItem("pref_workspace_lock", false)
         @JvmField
         val WORKSPACE_SIZE =
             backedUpItem(DeviceGridState.KEY_WORKSPACE_SIZE, "", EncryptionType.ENCRYPTED)
         @JvmField
         val HOTSEAT_COUNT =
             backedUpItem(DeviceGridState.KEY_HOTSEAT_COUNT, -1, EncryptionType.ENCRYPTED)
-        @JvmField val ALL_APPS_DARK_TEXT = backedUpItem("pref_all_apps_dark_text", false)
         @JvmField val ALL_APPS_SEARCH_PLACEMENT = backedUpItem("pref_allapps_search_placement", "bottom")
         // Universal search (ported from PenguinOS Launcher3). Network-backed web suggestions
         // stay off by default; photo search is not ported.
@@ -338,21 +337,17 @@ constructor(@ApplicationContext private val encryptedContext: Context) {
         @JvmField val SEARCH_HISTORY = backedUpItem("pref_search_history", true)
         @JvmField val SEARCH_SECTION_ORDER = backedUpItem("pref_search_section_order", "")
         @JvmField val SEARCH_MAX_PER_SECTION = backedUpItem("pref_search_max_per_section", 4)
-        @JvmField val ALLAPPS_THEMED_ICONS = backedUpItem("pref_allapps_themed_icons", true)
         @JvmField val ALLAPPS_ICON_CUSTOMIZATION =
             backedUpItem("pref_allapps_icon_customization", Boolean::class.java) {
                 ALLAPPS_THEMED_ICONS.get(it)
             }
-        @JvmField val ALLOW_WALLPAPER_ZOOMING = backedUpItem("pref_allow_wallpaper_zooming", true)
         @JvmField val APP_DRAWER_CUSTOM_COLOR_ENABLED = backedUpItem("pref_app_drawer_custom_color_enabled", false)
         @JvmField val APP_DRAWER_CUSTOM_COLOR_LIGHT = backedUpItem("pref_app_drawer_custom_color_light", -1) // #FFFFFFFF
         @JvmField val APP_DRAWER_CUSTOM_COLOR_DARK = backedUpItem("pref_app_drawer_custom_color_dark", -16777216) // #FF000000
-        @JvmField val APP_DRAWER_OPACITY = backedUpItem("pref_app_drawer_opacity", 90)
         @JvmField val APP_DRAWER_SORT_MODE = backedUpItem("pref_app_drawer_sorting_mode", "alphabetical")
         @JvmField val APP_DRAWER_STYLE = backedUpItem("pref_app_drawer_style", "normal")
         @JvmField val AUTO_HIDE_DOTS = backedUpItem("pref_auto_hide_dots", true)
         @JvmField val BLUR_DEPTH = backedUpItem("pref_blur_depth", 30)
-        @JvmField val DARK_STATUS_BAR = backedUpItem("pref_dark_status_bar", false)
         @JvmField val DOCK_MUSIC_SEARCH = backedUpItem("pref_dock_music_search", false)
         @JvmField val DOCK_SEARCH = backedUpItem("pref_dock_search", true)
         // "launcher": ColorOS-style search pill opening launcher search; "google": Google bar.
@@ -361,20 +356,9 @@ constructor(@ApplicationContext private val encryptedContext: Context) {
         @JvmField val DOCK_THEME = backedUpItem("pref_dock_theme", false)
         @JvmField val DRAWER_OPEN_KEYBOARD = backedUpItem("pref_drawer_open_keyboard", false)
         // Caddy categories tab (Flowerpot): the categories page shows when this is off.
-        @JvmField val DRAWER_LIST = backedUpItem("pref_drawer_list", true)
-        @JvmField val DRAWER_SCROLLBAR = backedUpItem("pref_drawer_scrollbar", true)
-        @JvmField val FONT_SIZE = backedUpItem("pref_custom_font_size", 100)
-        @JvmField val HOTSEAT_OPACITY = backedUpItem("pref_hotseat_opacity", 40)
         @JvmField val HOTSEAT_QSB_OPACITY = backedUpItem("pref_hotseat_qsb_opacity", 70)
         @JvmField val HOTSEAT_QSB_OUTER_OPACITY = backedUpItem("pref_hotseat_qsb_outer_opacity", 60)
         @JvmField val HOTSEAT_QSB_STROKE_WIDTH = backedUpItem("pref_hotseat_qsb_stroke_width", 0)
-        @JvmField val ICON_SIZE = backedUpItem("pref_custom_icon_size", 100)
-        @JvmField val RECENTS_CLEAR_ALL = backedUpItem("pref_recents_clear_all", true)
-        @JvmField val RECENTS_LENS = backedUpItem("pref_recents_lens", false)
-        @JvmField val RECENTS_MEMINFO = backedUpItem("pref_recents_meminfo", false)
-        @JvmField val RECENTS_MEMINFO_ZRAM = backedUpItem("pref_recents_meminfo_zram", false)
-        @JvmField val RECENTS_OPACITY = backedUpItem("pref_recents_opacity", 40)
-        @JvmField val RECENTS_SCREENSHOT = backedUpItem("pref_recents_screenshot", true)
         @JvmField val RECENTS_SCROLL_VIBRATE = backedUpItem("pref_recents_scroll_vibrate", true)
         @JvmField val RECENTS_LAYOUT = backedUpItem("pref_recents_layout", "carousel")
         @JvmField val RECENTS_MINI = backedUpItem("pref_recents_mini", false)
@@ -382,12 +366,7 @@ constructor(@ApplicationContext private val encryptedContext: Context) {
         @JvmField val RECENTS_APP_LABEL = backedUpItem("pref_recents_app_label", true)
         @JvmField val RECENTS_SEARCH = backedUpItem("pref_recents_search", false)
         @JvmField val RECENTS_CIRCULAR = backedUpItem("pref_recents_circular", false)
-        @JvmField val ROW_HEIGHT = backedUpItem("pref_row_height", 100)
-        @JvmField val SEARCH_RADIUS_SIZE = backedUpItem("pref_search_radius_size", 100)
         @JvmField val SERAPHIX_HOLDER_ID = backedUpItem("pref_seraphix_holder_id", -1)
-        @JvmField val SHORT_PARALLAX = backedUpItem("pref_short_parallax", false)
-        @JvmField val SHOW_DESKTOP_LABELS = backedUpItem("pref_desktop_show_labels", true)
-        @JvmField val SHOW_DRAWER_LABELS = backedUpItem("pref_drawer_show_labels", true)
         @JvmField val SHOW_HOTSEAT_BG = backedUpItem("pref_show_hotseat_bg", false)
         @JvmField val SHOW_QUICKSPACE = backedUpItem("pref_quickspace", true)
         @JvmField val SHOW_QUICKSPACE_ALT = backedUpItem("pref_quickspace_alt", false)

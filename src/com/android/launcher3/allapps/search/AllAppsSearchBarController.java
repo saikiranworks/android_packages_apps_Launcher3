@@ -126,8 +126,7 @@ public class AllAppsSearchBarController
         mQuery = s.toString();
         if (mQuery.isEmpty()) {
             mSearchAlgorithm.cancel(true);
-            if (mSearchAlgorithm.hasEmptyQueryResults() && mInput.hasFocus()) {
-            if (LauncherPrefs.isAppLibrary(mInput.getContext())) {
+            if (searchesEmptyQuery() && mInput.hasFocus()) {
                 mSearchAlgorithm.doSearch("", mTextConversions, mCallback);
             } else {
                 mCallback.clearSearchResult();
