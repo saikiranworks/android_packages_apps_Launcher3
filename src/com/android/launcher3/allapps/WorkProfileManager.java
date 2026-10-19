@@ -18,8 +18,6 @@ package com.android.launcher3.allapps;
 import static android.view.View.GONE;
 
 import static com.android.launcher3.LauncherPrefs.WORK_EDU_STEP;
-import static com.android.launcher3.allapps.ActivityAllAppsContainerView.AdapterHolder.MAIN;
-import static com.android.launcher3.allapps.ActivityAllAppsContainerView.AdapterHolder.SEARCH;
 import static com.android.launcher3.allapps.ActivityAllAppsContainerView.AdapterHolder.WORK;
 import static com.android.launcher3.allapps.BaseAllAppsAdapter.VIEW_TYPE_WORK_DISABLED_CARD;
 import static com.android.launcher3.allapps.BaseAllAppsAdapter.VIEW_TYPE_WORK_EDU_CARD;
@@ -84,7 +82,7 @@ public class WorkProfileManager extends UserProfileManager
 
     private void updateWorkUtilityViews(int page) {
         if (mWorkUtilityView != null) {
-            if (page == MAIN || page == SEARCH) {
+            if (!hasWorkApps() || page != WORK) {
                 mWorkUtilityView.animateVisibility(false);
             } else if (page == WORK && getCurrentState() == STATE_ENABLED) {
                 mWorkUtilityView.animateVisibility(true);
@@ -130,6 +128,10 @@ public class WorkProfileManager extends UserProfileManager
      * Creates and attaches for profile toggle button to {@link ActivityAllAppsContainerView}
      */
     public boolean attachWorkUtilityViews() {
+        if (!hasWorkApps()) {
+            detachWorkUtilityViews();
+            return false;
+        }
         if (!mAllApps.getAppsStore().hasModelFlag(
                 FLAG_HAS_SHORTCUT_PERMISSION | FLAG_QUIET_MODE_CHANGE_PERMISSION)) {
             Log.e(TAG, "unable to attach work mode switch; Missing required permissions");
@@ -199,7 +201,9 @@ public class WorkProfileManager extends UserProfileManager
     }
 
     private void onWorkFabClicked(View view) {
-        if (getCurrentState() == STATE_ENABLED && mWorkUtilityView.isEnabled()) {
+        if (hasWorkApps() && mAllApps.getCurrentPage() == WORK
+                && getCurrentState() == STATE_ENABLED && mWorkUtilityView != null
+                && mWorkUtilityView.isEnabled()) {
             Log.d(TAG, "Work FAB clicked.");
             logEvents(LAUNCHER_TURN_OFF_WORK_APPS_TAP);
             setWorkProfileEnabled(false);
