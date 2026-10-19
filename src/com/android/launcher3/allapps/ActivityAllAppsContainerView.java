@@ -497,10 +497,13 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         int margin = getResources().getDimensionPixelSize(R.dimen.app_library_suggestions_margin);
         int gap = getResources().getDimensionPixelSize(R.dimen.app_library_suggestions_gap);
         predictionRow.setBackgroundResource(R.drawable.bg_app_library_suggestions);
+        // Room between the labels and the hairline drawn at the bottom of the background.
+        predictionRow.setPadding(predictionRow.getPaddingLeft(), predictionRow.getPaddingTop(),
+                predictionRow.getPaddingRight(), gap / 2);
         if (predictionRow.getLayoutParams() instanceof MarginLayoutParams mlp) {
             mlp.leftMargin = margin;
             mlp.rightMargin = margin;
-            mlp.topMargin = gap;
+            mlp.topMargin = gap / 2;
             mlp.bottomMargin = gap;
         }
         View appsDivider = findViewById(R.id.apps_divider_view);

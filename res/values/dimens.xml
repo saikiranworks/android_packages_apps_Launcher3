@@ -542,6 +542,7 @@
     <dimen name="app_library_suggestions_corner_radius">@dimen/rounded_button_radius</dimen>
     <dimen name="app_library_suggestions_margin">16dp</dimen>
     <dimen name="app_library_suggestions_gap">20dp</dimen>
+    <dimen name="app_library_suggestions_divider_inset">24dp</dimen>
     <dimen name="app_library_top_gap">16dp</dimen>
     <!-- Room under a category tile's panel for its label, and the gap before the next row. -->
     <dimen name="app_library_tile_label_room">21dp</dimen>

@@ -145,6 +145,12 @@ public class PredictionRowView<T extends Context & ActivityContext>
     public int getExpectedHeight() {
         DeviceProfile deviceProfile = mActivityContext.getDeviceProfile();
         int iconHeight = deviceProfile.getAllAppsProfile().getIconSizePx();
+        if (LauncherPrefs.SHOW_DRAWER_LABELS.get(getContext())) {
+            // Labelled like the app grid below it.
+            iconHeight += deviceProfile.getAllAppsProfile().getIconDrawablePaddingPx()
+                    + Utilities.calculateTextHeight(
+                            deviceProfile.getAllAppsProfile().getIconTextSizePx());
+        }
         int totalHeight = iconHeight + mVerticalPadding * 2;
         return getVisibility() == GONE ? 0 : totalHeight + getPaddingTop() + getPaddingBottom();
     }
