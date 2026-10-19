@@ -188,6 +188,14 @@
             launcher:iconSpaceReserved="false" />
 
         <SwitchPreferenceCompat
+            android:key="pref_spotlight_suggestions"
+            android:title="@string/search_pref_spotlight_suggestions"
+            android:summary="@string/search_pref_spotlight_suggestions_summary"
+            android:defaultValue="true"
+            android:persistent="true"
+            launcher:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
             android:key="pref_search_history"
             android:title="@string/search_pref_history"
             android:defaultValue="true"

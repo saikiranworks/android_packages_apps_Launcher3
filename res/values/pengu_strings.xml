@@ -220,5 +220,8 @@
     <string name="spotlight_clipboard_link">Link on Clipboard</string>
     <string name="spotlight_open_link">Open Link</string>
     <string name="spotlight_now_playing">Now Playing</string>
+    <string name="spotlight_suggestions">Suggestions</string>
+    <string name="search_pref_spotlight_suggestions">Spotlight suggestions</string>
+    <string name="search_pref_spotlight_suggestions_summary">Suggested apps, a copied link and what\'s playing when Spotlight opens</string>
     <string name="spotlight_play">Play <ns0:g id="title" example="CHANEL">%1$s</ns0:g></string>
 </resources>

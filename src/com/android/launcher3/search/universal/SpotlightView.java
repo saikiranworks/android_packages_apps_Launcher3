@@ -88,6 +88,7 @@ public class SpotlightView extends AbstractFloatingView
         implements SearchCallback<AdapterItem>, TextWatcher {
 
     private static final int APPS_PER_ROW = 4;
+    private static final int APP_CELL_WIDTH_DP = 104;
     private static final String SPOTLIGHT_OPEN_SETTING = "penguin_spotlight_open";
     // The card blurs a quarter-size snapshot of what's behind it, which also keeps the blur cheap.
     private static final int BACKDROP_SCALE = 4;
@@ -597,7 +598,15 @@ public class SpotlightView extends AbstractFloatingView
             }
         }
         List<Row> rows = new ArrayList<>();
-        if (!apps.isEmpty()) rows.add(Row.apps(apps));
+        if (!LauncherPrefs.SPOTLIGHT_SUGGESTIONS.get(getContext())) {
+            // Suggestions off: only what the user asked for (e.g. recent searches) remains.
+            rows.addAll(rows(rest));
+            return rows;
+        }
+        if (!apps.isEmpty()) {
+            rows.add(Row.header(getContext().getString(R.string.spotlight_suggestions)));
+            rows.add(Row.apps(apps));
+        }
         UniversalSearchResult link = clipboardLink();
         if (link != null) {
             rows.add(Row.header(getContext().getString(R.string.spotlight_clipboard_link)));
@@ -812,13 +821,22 @@ public class SpotlightView extends AbstractFloatingView
                     row.setLayoutParams(new RecyclerView.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.WRAP_CONTENT));
-                    row.setPadding(0, dp(8), 0, dp(8));
+                    // A compact, left-aligned row of fixed-width cells lined up with the
+                    // section titles, instead of four icons stretched across the whole card.
+                    row.setGravity(android.view.Gravity.START);
+                    row.setPadding(dp(4), dp(4), dp(4), dp(4));
+                    int cellWidth = dp(APP_CELL_WIDTH_DP);
+                    // Icon + label + a little air: the drawer's cell height leaves a big gap
+                    // above the icons here, since they centre themselves vertically.
+                    var allApps = mHost.getDeviceProfile().getAllAppsProfile();
+                    int cellHeight = Math.min(allApps.getCellHeightPx(),
+                            allApps.getIconSizePx() + allApps.getIconDrawablePaddingPx()
+                                    + Utilities.calculateTextHeight(allApps.getIconTextSizePx())
+                                    + dp(20));
                     for (int i = 0; i < APPS_PER_ROW; i++) {
                         BubbleTextView icon = (BubbleTextView) inflater.inflate(
                                 R.layout.all_apps_icon, row, false);
-                        // Icons centre themselves in the drawer's cell height, and clip without it.
-                        row.addView(icon, new LinearLayout.LayoutParams(0, mLauncher
-                                .getDeviceProfile().getAllAppsProfile().getCellHeightPx(), 1f));
+                        row.addView(icon, new LinearLayout.LayoutParams(cellWidth, cellHeight));
                     }
                     yield row;
                 }
