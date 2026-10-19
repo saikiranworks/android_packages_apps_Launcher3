@@ -34,8 +34,15 @@ import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.ColorFilter;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.PixelFormat;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
@@ -91,6 +98,7 @@ import com.android.launcher3.touch.CustomTouchDelegate;
 import com.android.launcher3.util.LauncherBindableItemsContainer.ItemOperator;
 import com.android.launcher3.util.Themes;
 import com.android.launcher3.views.ActivityContext;
+import com.android.launcher3.views.IconButtonView;
 import com.android.launcher3.views.PredictedAppIcon;
 import com.android.quickstep.util.GroupTask;
 import com.android.quickstep.util.SingleTask;
@@ -144,6 +152,9 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
 
     // Only non-null when device supports having an All Apps button.
     private final TaskbarAllAppsButtonContainer mAllAppsButtonContainer;
+    // Desktop mode only: open Spotlight, and leave the desktop (the bottom swipe no longer does).
+    private final IconButtonView mSpotlightButton;
+    private final IconButtonView mExitDesktopButton;
 
     // Only non-null when device supports having a Divider button.
     @Nullable private TaskbarDividerContainer mTaskbarDividerContainer;
@@ -278,6 +289,15 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
                 mAllAppsButtonContainer.getAllAppsButtonTranslationXOffset(
                         mActivityContext.isTransientTaskbar()));
 
+        mSpotlightButton = createDesktopActionButton(R.drawable.ic_allapps_search,
+                R.string.taskbar_spotlight_button,
+                v -> com.android.launcher3.search.universal.SpotlightView.toggleFromTaskbar(
+                        getContext()));
+        mExitDesktopButton = createDesktopActionButton(createExitDesktopIcon(),
+                R.string.taskbar_exit_desktop_button,
+                v -> mActivityContext.getControllers().navButtonController.onButtonClick(
+                        TaskbarNavButtonController.BUTTON_HOME, v));
+
         mItemViewFactory = new TaskbarPinnedAppsIconsViewFactory(mActivityContext, this);
 
         mTaskbarDividerContainer = (TaskbarDividerContainer) inflate(
@@ -329,6 +349,9 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
             ++additionalIcons;
         }
 
+        // Desktop action buttons take a full icon slot each while shown.
+        availableWidth -= getNumVisibleDesktopActionButtons() * iconSize;
+
         // All apps icon takes less space compared to normal icon size, reserve space for the icon
         // separately.
         boolean forceTransientTaskbarSize = canTransitionToTransientTaskbar();
@@ -373,6 +396,11 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
     private int addStaticViews() {
         int numStaticViews = 1;
         addView(mAllAppsButtonContainer);
+        // Right after All Apps (before it in RTL), so they read as part of the same group.
+        addView(mSpotlightButton, mIsRtl ? 0 : numStaticViews++);
+        if (mIsRtl) numStaticViews++;
+        addView(mExitDesktopButton, mIsRtl ? 0 : numStaticViews++);
+        if (mIsRtl) numStaticViews++;
 
         if (mHotseatIconsContainer != null) {
             addView(mHotseatIconsContainer, mIsRtl ? 0 : numStaticViews);
@@ -475,6 +503,8 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
                         : (sTmpRect.left + mPinnedHitRectBuffer);
                 if (mHotseatIconsContainer == null) {
                     iconAreaStartX += mAllAppsButtonContainer.getSpaceNeeded() * direction;
+                    iconAreaStartX += getNumVisibleDesktopActionButtons()
+                            * (mIconTouchSize + 2 * mItemMarginLeftRight) * direction;
                 }
                 int clampedX = Math.max(sTmpRect.left, Math.min(sTmpRect.right, onScreenLocationX));
                 int relativeX = (clampedX - iconAreaStartX) * direction;
@@ -496,6 +526,8 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
                 int dropSpotOffset =
                         mActivityContext.getDeviceProfile().getHotseatProfile().isQsbInline()
                                 ? 2 : 1;
+                // The desktop action buttons are always children, shown or not.
+                dropSpotOffset += 2;
                 int dividerIndex = indexOfChild(mTaskbarDividerContainer);
 
                 int maxIndex = indexOfChild(mTaskbarPinnedOverflowView);
@@ -686,6 +718,9 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
         if (mNumStaticViews == 0) {
             mNumStaticViews = addStaticViews();
         }
+        int desktopButtonVisibility = mActivityContext.isInDesktopMode() ? VISIBLE : GONE;
+        mSpotlightButton.setVisibility(desktopButtonVisibility);
+        mExitDesktopButton.setVisibility(desktopButtonVisibility);
 
         // Skip static views and potential All Apps divider, if they are on the left.
         mNextViewIndex = mIsRtl ? 0 : mNumStaticViews;
@@ -1653,9 +1688,18 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
             }
         }
 
+        int hiddenDesktopButtons = 0;
+        for (int i = getChildCount() - 1; i >= 0; --i) {
+            View child = getChildAt(i);
+            if (isDesktopActionButton(child) && child.getVisibility() != VISIBLE) {
+                hiddenDesktopButtons++;
+            }
+        }
+
         int count = getChildCount()
                 - numContainers
-                + numIconsInContainers;
+                + numIconsInContainers
+                - hiddenDesktopButtons;
         if (mActivityContext.getDeviceProfile().getHotseatProfile().isQsbInline()) {
             count--; // Exclude QSB
         }
@@ -1718,6 +1762,10 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
         int insertionPoint = 0;
         for (int i = 0; i < count; i++) {
             if (getChildAt(i) == mQsb) continue;
+            if (isDesktopActionButton(getChildAt(i))
+                    && getChildAt(i).getVisibility() != VISIBLE) {
+                continue;
+            }
             if (getChildAt(i) instanceof TaskbarPinnedAppIconContainer tic) {
                 int ticCount = tic.getChildCount();
                 if (mIsRtl) {
@@ -1770,6 +1818,95 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
     /**
      * Returns the all apps button in the taskbar.
      */
+    private IconButtonView createDesktopActionButton(int iconRes, int descriptionRes,
+            View.OnClickListener onClick) {
+        return createDesktopActionButton(getContext().getDrawable(iconRes), descriptionRes,
+                onClick);
+    }
+
+    private IconButtonView createDesktopActionButton(Drawable icon, int descriptionRes,
+            View.OnClickListener onClick) {
+        IconButtonView button = new IconButtonView(getContext());
+        button.setContentDescription(getContext().getString(descriptionRes));
+        button.setBackgroundTintList(ColorStateList.valueOf(Color.TRANSPARENT));
+        button.setPadding(mItemPadding, mItemPadding, mItemPadding, mItemPadding);
+        button.setIconDrawable(icon);
+        button.setForegroundTint(getContext().getColor(R.color.all_apps_button_color));
+        button.setLayoutParams(new TaskbarLayoutParams(mIconTouchSize, mIconTouchSize));
+        button.setOnClickListener(onClick);
+        button.setVisibility(GONE);
+        return button;
+    }
+
+    /**
+     * A house glyph. The navbar home asset is a filled circle, which reads as an empty button
+     * next to Search.
+     */
+    private static Drawable createExitDesktopIcon() {
+        Path path = new Path();
+        path.moveTo(10, 20);
+        path.lineTo(10, 14);
+        path.lineTo(14, 14);
+        path.lineTo(14, 20);
+        path.lineTo(19, 20);
+        path.lineTo(19, 12);
+        path.lineTo(22, 12);
+        path.lineTo(12, 3);
+        path.lineTo(2, 12);
+        path.lineTo(5, 12);
+        path.lineTo(5, 20);
+        path.close();
+        return new Drawable() {
+            private final Paint mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            private final Path mScaled = new Path();
+            private final Matrix mMatrix = new Matrix();
+
+            {
+                mPaint.setStyle(Paint.Style.FILL);
+                mPaint.setColor(Color.WHITE);
+            }
+
+            @Override
+            public void draw(Canvas canvas) {
+                Rect bounds = getBounds();
+                mMatrix.setScale(bounds.width() / 24f, bounds.height() / 24f);
+                mMatrix.postTranslate(bounds.left, bounds.top);
+                path.transform(mMatrix, mScaled);
+                canvas.drawPath(mScaled, mPaint);
+            }
+
+            @Override
+            public void setTint(int tintColor) {
+                mPaint.setColor(tintColor);
+                invalidateSelf();
+            }
+
+            @Override
+            public void setAlpha(int alpha) {
+                mPaint.setAlpha(alpha);
+            }
+
+            @Override
+            public void setColorFilter(ColorFilter colorFilter) {
+                mPaint.setColorFilter(colorFilter);
+            }
+
+            @Override
+            public int getOpacity() {
+                return PixelFormat.TRANSLUCENT;
+            }
+        };
+    }
+
+    private int getNumVisibleDesktopActionButtons() {
+        return mActivityContext.isInDesktopMode() ? 2 : 0;
+    }
+
+    /** Whether the view is one of the desktop-mode Spotlight / exit buttons. */
+    public boolean isDesktopActionButton(View view) {
+        return view == mSpotlightButton || view == mExitDesktopButton;
+    }
+
     public TaskbarAllAppsButtonContainer getAllAppsButtonContainer() {
         return mAllAppsButtonContainer;
     }

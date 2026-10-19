@@ -1184,7 +1184,9 @@ public class TaskbarViewController implements TaskbarControllers.LoggableTaskbar
 
         for (int i = 0; i < parent.getChildCount(); i++) {
             View child = parent.getChildAt(i);
-            boolean isAllAppsButton = child == mTaskbarView.getAllAppsButtonContainer();
+            // The desktop-mode Spotlight / exit buttons travel and fade with All Apps.
+            boolean isAllAppsButton = child == mTaskbarView.getAllAppsButtonContainer()
+                    || mTaskbarView.isDesktopActionButton(child);
             boolean isTaskbarDividerView = child == mTaskbarView.getTaskbarDividerViewContainer();
             boolean isTaskbarOverflowView = child == mTaskbarView.getTaskbarRecentsOverflowView();
             boolean isRecentTask = child.getTag() instanceof GroupTask;

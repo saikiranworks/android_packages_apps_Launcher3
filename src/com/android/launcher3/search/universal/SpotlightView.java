@@ -26,6 +26,7 @@ import android.graphics.RenderEffect;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.view.WindowManager;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
 import android.media.session.MediaSessionManager;
@@ -315,6 +316,9 @@ public class SpotlightView extends AbstractFloatingView
             mField.setClipToOutline(true);
             mScrim.setBackgroundColor(0x40000000);
         } else {
+            // Over a desktop window there is no home snapshot to blur, so darken the scrim.
+            // SearchActivity also blurs the windows behind this one.
+            mScrim.setBackgroundColor(0xB3000000);
             // Search stays by the thumb: the card stacks above the field, the field above the
             // keyboard.
             content.removeView(mField);
@@ -902,6 +906,12 @@ public class SpotlightView extends AbstractFloatingView
             super.onCreate(state);
             mDeviceProfile = InvariantDeviceProfile.INSTANCE.get(this).getDeviceProfile(this);
             getWindow().setDecorFitsSystemWindows(false);
+            // Blur the desktop windows behind this translucent activity so result text stays
+            // readable. The scrim still covers the case where window blurs are disabled.
+            WindowManager.LayoutParams attrs = getWindow().getAttributes();
+            attrs.flags |= WindowManager.LayoutParams.FLAG_BLUR_BEHIND;
+            attrs.setBlurBehindRadius(80);
+            getWindow().setAttributes(attrs);
             mLayer = new SearchDragLayer(this);
             setContentView(mLayer);
             sCurrent = new java.lang.ref.WeakReference<>(this);
@@ -979,6 +989,20 @@ public class SpotlightView extends AbstractFloatingView
         } catch (android.os.RemoteException | SecurityException e) {
             android.util.Log.w("Spotlight", "Unable to register Alt+Space", e);
         }
+    }
+
+    /**
+     * The desktop-mode taskbar's Search button: opens Spotlight over the desktop in its own
+     * translucent activity, or closes it if it is already showing.
+     */
+    public static void toggleFromTaskbar(Context context) {
+        SearchActivity activity = SearchActivity.sCurrent.get();
+        if (activity != null && !activity.isFinishing()) {
+            if (!closeFromKeyboard(activity)) activity.finish();
+            return;
+        }
+        context.startActivity(new Intent(context, SearchActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_ANIMATION));
     }
 
     private static boolean sLegacyNotify;

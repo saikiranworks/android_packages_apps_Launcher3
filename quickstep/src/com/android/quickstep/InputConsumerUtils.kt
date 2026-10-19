@@ -237,6 +237,20 @@ object InputConsumerUtils {
                         !tac.isPhoneMode &&
                         !tac.isInStashedLauncherState)
                 if (canStartSystemGesture && useTaskbarConsumer) {
+                    if (
+                        !gestureState.isTrackpadGesture &&
+                            desktopVisibilityController.isInDesktopModeAndNotInOverview(
+                                gestureState.displayId
+                            )
+                    ) {
+                        // On the desktop, swiping up from the bottom edge only reveals the
+                        // taskbar; leaving the desktop is the taskbar's Exit desktop button.
+                        reasonString.append(
+                            "%sin desktop mode, bottom swipe only unstashes the taskbar",
+                            SUBSTRING_PREFIX,
+                        )
+                        base = InputConsumer.createNoOpInputConsumer(gestureState.displayId)
+                    }
                     reasonString.append(
                         "%s%s%sTaskbarActivityContext != null, " +
                             "using TaskbarUnstashInputConsumer",
