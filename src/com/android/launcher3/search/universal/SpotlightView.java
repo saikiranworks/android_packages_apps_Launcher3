@@ -61,8 +61,13 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.BubbleTextView;
+import com.android.launcher3.BaseActivity;
+import com.android.launcher3.InvariantDeviceProfile;
+import com.android.launcher3.views.BaseDragLayer;
 import com.android.launcher3.Launcher;
+import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.R;
+import com.android.launcher3.Utilities;
 import com.android.launcher3.allapps.BaseAllAppsAdapter;
 import com.android.launcher3.allapps.BaseAllAppsAdapter.AdapterItem;
 import com.android.launcher3.model.data.AppInfo;
@@ -90,7 +95,7 @@ public class SpotlightView extends AbstractFloatingView
     private static final float HOME_BLUR_RADIUS = 10f;
     private static final PathInterpolator EASE = new PathInterpolator(0.3f, 0f, 0.1f, 1f);
 
-    private Launcher mLauncher;
+    private BaseActivity mHost;
     private UniversalSearchAlgorithm mSearch;
     private EditText mInput;
     private View mField;
@@ -103,6 +108,7 @@ public class SpotlightView extends AbstractFloatingView
     private ImageView mHomeBlur;
     private final Adapter mAdapter = new Adapter();
     private boolean mAtTop;
+    private boolean mHadWindowFocus;
     // The Dynamic Island the field grows out of and shrinks back into.
     private final RectF mIsland = new RectF();
     // The island at rest around the camera, which places the field.
@@ -120,25 +126,47 @@ public class SpotlightView extends AbstractFloatingView
      * place, just above the keyboard.
      */
     public static void show(Launcher launcher, RectF from, boolean atTop) {
-        if (atTop) {
-            // Out of the way before the field reaches the top, taking the island with it.
-            setTakingIslandsPlace(launcher, true);
+        // Capture before attaching, on the UI thread. Attaching synchronously prevents two
+        // keyboard presses from queuing two independent captures and two search views.
+        attach(launcher, from, atTop, snapshotHome(launcher));
+    }
+
+    private static void attach(BaseActivity host, RectF from, boolean atTop, Bitmap capture) {
+        BaseDragLayer<?> layer = host.getDragLayer();
+        for (int i = layer.getChildCount() - 1; i >= 0; i--) {
+            if (layer.getChildAt(i) instanceof SpotlightView old) {
+                if (old.isOpen()) return;
+                old.removeFromHost();
+            }
         }
-        // The screen as it stands, live wallpaper and all, before Spotlight covers any of it.
-        View root = launcher.getDragLayer();
-        Executors.UI_HELPER_EXECUTOR.execute(() -> {
-            Bitmap capture = ApiWrapper.INSTANCE.get(launcher)
-                    .captureHomeWithWallpaper(root, 1f / BACKDROP_SCALE);
-            Executors.MAIN_EXECUTOR.execute(() -> {
-                SpotlightView view = (SpotlightView) LayoutInflater.from(launcher)
-                        .inflate(R.layout.spotlight_view, launcher.getDragLayer(), false);
-                view.setup(launcher, atTop, from);
-                view.setBackdrop(capture != null ? capture : snapshotHome(launcher));
-                launcher.getDragLayer().addView(view);
-                view.mIsOpen = true;
-                view.post(() -> view.animateOpen(from));
-            });
-        });
+        if (atTop) setTakingIslandsPlace(host, true);
+        SpotlightView view = (SpotlightView) LayoutInflater.from(host)
+                .inflate(R.layout.spotlight_view, layer, false);
+        view.setup(host, atTop, from);
+        view.setBackdrop(capture);
+        layer.addView(view);
+        view.mIsOpen = true;
+        view.requestApplyInsets();
+        view.post(() -> view.animateOpen(from));
+    }
+
+    public static void toggleFromKeyboard(Launcher launcher) {
+        if (closeFromKeyboard(launcher)) return;
+        View anchor = launcher.getHotseat().getQsb();
+        launcher.openSearchFromPill(anchor != null ? anchor : launcher.getHotseat());
+    }
+
+    private static boolean closeFromKeyboard(BaseActivity host) {
+        BaseDragLayer<?> layer = host.getDragLayer();
+        for (int i = layer.getChildCount() - 1; i >= 0; i--) {
+            if (layer.getChildAt(i) instanceof SpotlightView view) {
+                boolean wasOpen = view.isOpen();
+                if (wasOpen) view.close(false);
+                else view.removeFromHost();
+                if (wasOpen) return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -152,6 +180,17 @@ public class SpotlightView extends AbstractFloatingView
         }
         int width = root.getWidth() / BACKDROP_SCALE;
         int height = root.getHeight() / BACKDROP_SCALE;
+        try {
+            return snapshotHome(launcher, root, width, height, true);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            // Mid app-close animation the workspace is drawn through a software drawing cache,
+            // which can't draw the icons' hardware bitmaps. Blur the wallpaper alone this time.
+            return snapshotHome(launcher, root, width, height, false);
+        }
+    }
+
+    private static Bitmap snapshotHome(Launcher launcher, View root, int width, int height,
+            boolean withViews) {
         // Recorded and rendered on the GPU: the icons are hardware bitmaps a software canvas
         // can't draw.
         Picture picture = new Picture();
@@ -175,8 +214,13 @@ public class SpotlightView extends AbstractFloatingView
         } catch (RuntimeException e) {
             // A live wallpaper, or none readable: the card shows the icons alone.
         }
-        root.draw(canvas);
-        picture.endRecording();
+        try {
+            if (withViews) {
+                root.draw(canvas);
+            }
+        } finally {
+            picture.endRecording();
+        }
         return Bitmap.createBitmap(picture, width, height, Bitmap.Config.HARDWARE);
     }
 
@@ -206,21 +250,26 @@ public class SpotlightView extends AbstractFloatingView
     }
 
     private void alignBackdrop() {
-        int[] location = new int[2];
-        mCard.getLocationInWindow(location);
+        // The card's laid-out position, ignoring its open animation's scale/translation: a
+        // transformed location shifted the snapshot and left an empty dark strip at one edge.
+        int x = 0;
+        int y = 0;
+        for (View v = mCard; v != null; v = v.getParent() instanceof View p ? p : null) {
+            x += v.getLeft() - v.getScrollX();
+            y += v.getTop() - v.getScrollY();
+        }
         Matrix matrix = new Matrix();
         matrix.setScale(BACKDROP_SCALE, BACKDROP_SCALE);
-        matrix.postTranslate(-location[0] - mCard.getTranslationX(),
-                -location[1] - mCard.getTranslationY());
+        matrix.postTranslate(-x, -y);
         mBackdrop.setImageMatrix(matrix);
     }
 
-    private void setup(Launcher launcher, boolean atTop, RectF from) {
-        mLauncher = launcher;
+    private void setup(BaseActivity launcher, boolean atTop, RectF from) {
+        mHost = launcher;
         mAtTop = atTop;
         mIsland.set(from);
         if (atTop) {
-            launcher.islandBounds(mIslandAtRest);
+            ((Launcher) launcher).islandBounds(mIslandAtRest);
         }
         mScrim = findViewById(R.id.spotlight_scrim);
         mField = findViewById(R.id.spotlight_field);
@@ -231,7 +280,7 @@ public class SpotlightView extends AbstractFloatingView
         mCard.setClipToOutline(true);
         findViewById(R.id.spotlight_mic).setOnClickListener(v -> {
             try {
-                mLauncher.startActivity(new Intent(RecognizerIntent.ACTION_WEB_SEARCH)
+                mHost.startActivity(new Intent(RecognizerIntent.ACTION_WEB_SEARCH)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             } catch (ActivityNotFoundException e) {
                 // No voice search installed.
@@ -305,7 +354,30 @@ public class SpotlightView extends AbstractFloatingView
         return super.onApplyWindowInsets(insets);
     }
 
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        if (mCard == null) {
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+            return;
+        }
+        View content = findViewById(R.id.spotlight_content);
+        ViewGroup.MarginLayoutParams cardParams =
+                (ViewGroup.MarginLayoutParams) mCard.getLayoutParams();
+        cardParams.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        // The bottom field must fit alongside a scrollable card, even with a landscape IME.
+        // LinearLayout otherwise measures the card before the field and can push it off screen.
+        int available = Math.max(0, getMeasuredHeight() - content.getPaddingTop()
+                - content.getPaddingBottom() - mField.getMeasuredHeight()
+                - cardParams.topMargin - cardParams.bottomMargin);
+        if (mCard.getMeasuredHeight() > available) {
+            cardParams.height = available;
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        }
+    }
+
     private void animateOpen(RectF from) {
+        if (!mIsOpen || !isAttachedToWindow()) return;
         int[] location = new int[2];
         mField.getLocationInWindow(location);
         if (mAtTop) {
@@ -345,9 +417,9 @@ public class SpotlightView extends AbstractFloatingView
                 .hideSoftInputFromWindow(getWindowToken(), 0);
         if (!animate) {
             if (mAtTop) {
-                setTakingIslandsPlace(mLauncher, false);
+                setTakingIslandsPlace(mHost, false);
             }
-            mLauncher.getDragLayer().removeView(this);
+            removeFromHost();
             return;
         }
         if (mAtTop) {
@@ -358,21 +430,37 @@ public class SpotlightView extends AbstractFloatingView
             mCard.animate().alpha(0f).scaleX(0.94f).scaleY(0.94f).setStartDelay(0)
                     .setDuration(160).start();
             // Back into the island where it is now, or into the camera when it shows nothing.
-            boolean islandShowing = mLauncher.spotlightAnchor(mIsland);
+            boolean islandShowing = mHost instanceof Launcher launcher
+                    && launcher.spotlightAnchor(mIsland);
             mField.setElevation(0);
             morphField(false, () -> {
-                setTakingIslandsPlace(mLauncher, false);
+                setTakingIslandsPlace(mHost, false);
                 if (islandShowing) {
                     // Held under the real island while it fades back in over it.
-                    postDelayed(() -> mLauncher.getDragLayer().removeView(this), 250);
+                    postDelayed(() -> removeFromHost(), 250);
                 } else {
-                    mLauncher.getDragLayer().removeView(this);
+                    removeFromHost();
                 }
             });
             return;
         }
         animate().alpha(0f).setDuration(180)
-                .withEndAction(() -> mLauncher.getDragLayer().removeView(this)).start();
+                .withEndAction(() -> removeFromHost()).start();
+    }
+
+    private void removeFromHost() {
+        animate().cancel();
+        mField.animate().cancel();
+        mCard.animate().cancel();
+        mInput.clearFocus();
+        BaseDragLayer<?> layer = mHost.getDragLayer();
+        layer.removeView(this);
+        if (mHost instanceof SearchActivity activity) {
+            activity.finish();
+        } else if (mHost.hasWindowFocus()) {
+            layer.setFocusableInTouchMode(true);
+            layer.requestFocus();
+        }
     }
 
     /**
@@ -426,10 +514,11 @@ public class SpotlightView extends AbstractFloatingView
     public void onWindowFocusChanged(boolean hasWindowFocus) {
         super.onWindowFocusChanged(hasWindowFocus);
         // Something opened from here took over the screen.
-        if (!hasWindowFocus && mIsOpen) {
+        if (hasWindowFocus) mHadWindowFocus = true;
+        if (!hasWindowFocus && mHadWindowFocus && mIsOpen) {
             // Not while the window is still telling its views about the focus change.
             post(() -> {
-                if (mIsOpen) close(false);
+                if (mIsOpen && !hasWindowFocus()) close(false);
             });
         }
     }
@@ -458,11 +547,11 @@ public class SpotlightView extends AbstractFloatingView
         for (int i = 0; i < mAdapter.getItemCount(); i++) {
             Row row = mAdapter.mRows.get(i);
             if (row.result != null) {
-                return UniversalSearchResults.launch(mLauncher, mInput, row.result);
+                return UniversalSearchResults.launch(mHost, mInput, row.result);
             }
             if (row.apps != null && !row.apps.isEmpty()) {
                 AppInfo app = row.apps.get(0);
-                return mLauncher.startActivitySafely(mInput, app.getIntent(), app) != null;
+                return mHost.startActivitySafely(mInput, app.getIntent(), app) != null;
             }
         }
         return false;
@@ -611,7 +700,7 @@ public class SpotlightView extends AbstractFloatingView
                 if (playing) {
                     Intent launch = getContext().getPackageManager()
                             .getLaunchIntentForPackage(controller.getPackageName());
-                    if (launch != null) mLauncher.startActivity(launch);
+                    if (launch != null) mHost.startActivity(launch);
                 } else {
                     controls.play();
                     close(true);
@@ -761,14 +850,14 @@ public class SpotlightView extends AbstractFloatingView
                         icon.setOnClickListener(v -> {
                             SearchHistory.recordLaunch(v.getContext(), SearchHistory.appKey(
                                     app.getTargetComponent(), app.user));
-                            mLauncher.startActivitySafely(v, app.getIntent(), app);
+                            mHost.startActivitySafely(v, app.getIntent(), app);
                         });
                     }
                 }
                 case Row.HEADER -> ((TextView) holder.itemView.findViewWithTag("title"))
                         .setText(row.title);
                 case Row.RESULT -> {
-                    UniversalSearchResults.bind(mLauncher, holder.itemView, row.result);
+                    UniversalSearchResults.bind(mHost, holder.itemView, row.result);
                     // A touch larger than the drawer's rows, at the system's body size.
                     TextView title = holder.itemView.findViewById(R.id.search_result_title);
                     title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
@@ -780,8 +869,143 @@ public class SpotlightView extends AbstractFloatingView
                 case Row.FILTERS -> UniversalSearchResults.bindFilters(
                         holder.itemView, row.item.searchFilters);
                 case Row.THUMBNAILS -> UniversalSearchResults.bindThumbnails(
-                        mLauncher, holder.itemView, row.item.searchThumbnails);
+                        mHost, holder.itemView, row.item.searchThumbnails);
             }
         }
     }
+    /** Spotlight over the current app; finishing restores that app's task. */
+    public static class SearchActivity extends BaseActivity {
+        private SearchDragLayer mLayer;
+        private static java.lang.ref.WeakReference<SearchActivity> sCurrent =
+                new java.lang.ref.WeakReference<>(null);
+
+        @Override
+        protected void onCreate(android.os.Bundle state) {
+            super.onCreate(state);
+            mDeviceProfile = InvariantDeviceProfile.INSTANCE.get(this).getDeviceProfile(this);
+            getWindow().setDecorFitsSystemWindows(false);
+            mLayer = new SearchDragLayer(this);
+            setContentView(mLayer);
+            sCurrent = new java.lang.ref.WeakReference<>(this);
+            mLayer.post(() -> {
+                if (isFinishing()) return;
+                float bottom = mLayer.getHeight() - 32 * getResources().getDisplayMetrics().density;
+                attach(this, new RectF(0, bottom, mLayer.getWidth(), bottom), false, null);
+            });
+        }
+
+        @Override
+        protected void onNewIntent(Intent intent) {
+            super.onNewIntent(intent);
+            onBackPressed();
+        }
+
+        @Override
+        public BaseDragLayer<?> getDragLayer() { return mLayer; }
+
+        @Override
+        public void onBackPressed() {
+            if (!closeFromKeyboard(this)) finish();
+        }
+
+        @Override
+        protected void onPause() {
+            super.onPause();
+            if (!isFinishing()) finish();
+        }
+
+        @Override
+        protected void onDestroy() {
+            if (mLayer != null) closeFromKeyboard(this);
+            if (sCurrent.get() == this) sCurrent.clear();
+            super.onDestroy();
+        }
+    }
+
+    private static class SearchDragLayer extends BaseDragLayer<SearchActivity> {
+        SearchDragLayer(SearchActivity activity) {
+            super(activity, null, 1);
+            mControllers = new com.android.launcher3.util.TouchController[0];
+        }
+    }
+
+    private static com.android.internal.policy.IShortcutService sShortcut;
+
+    /** Register once per process; WindowManager drops the registration when its binder dies. */
+    public static void registerGlobalShortcut(Context context) {
+        if (sShortcut != null) return;
+        // Older framework versions notify on key down, on every key repeat and on key up.
+        // There, count only the first notification of each press (see onShortcutNotified).
+        // The updated framework notifies once per press, so no filtering is needed.
+        try {
+            sLegacyNotify = android.view.WindowManagerGlobal.class
+                    .getField("SHORTCUT_CALLBACK_VERSION").getInt(null) < 1;
+        } catch (ReflectiveOperationException e) {
+            sLegacyNotify = true;
+        }
+        Context app = context.getApplicationContext();
+        long code = KeyEvent.KEYCODE_SPACE | ((long) KeyEvent.META_ALT_ON << 32);
+        com.android.internal.policy.IShortcutService receiver =
+                new com.android.internal.policy.IShortcutService.Stub() {
+            @Override
+            public void notifyShortcutKeyPressed(long shortcutCode) {
+                if (onShortcutNotified(android.os.SystemClock.uptimeMillis())) {
+                    Executors.MAIN_EXECUTOR.execute(() -> toggleGlobal(app));
+                }
+            }
+        };
+        try {
+            android.view.WindowManagerGlobal.getWindowManagerService()
+                    .registerShortcutKey(code, receiver);
+            sShortcut = receiver;
+        } catch (android.os.RemoteException | SecurityException e) {
+            android.util.Log.w("Spotlight", "Unable to register Alt+Space", e);
+        }
+    }
+
+    private static boolean sLegacyNotify;
+    private static long sLastNotifyTime = -1;
+
+    /**
+     * Whether this shortcut notification starts a new press. On the older framework one press
+     * notifies on down, then repeats while held, then on release; all arrive within the key
+     * repeat delay of each other, so a gap longer than that marks the next press.
+     */
+    private static synchronized boolean onShortcutNotified(long now) {
+        if (!sLegacyNotify) return true;
+        long gap = now - sLastNotifyTime;
+        sLastNotifyTime = now;
+        return gap > android.view.ViewConfiguration.getKeyRepeatTimeout() + LEGACY_PRESS_GAP_MS;
+    }
+
+    private static final long LEGACY_PRESS_GAP_MS = 150;
+
+    private static void toggleGlobal(Context context) {
+        android.app.KeyguardManager keyguard =
+                context.getSystemService(android.app.KeyguardManager.class);
+        if (keyguard != null && keyguard.isKeyguardLocked()) return;
+        boolean keyboard = false;
+        for (int id : android.view.InputDevice.getDeviceIds()) {
+            android.view.InputDevice device = android.view.InputDevice.getDevice(id);
+            if (device != null && !device.isVirtual()
+                    && device.getKeyboardType() == android.view.InputDevice.KEYBOARD_TYPE_ALPHABETIC) {
+                keyboard = true;
+                break;
+            }
+        }
+        if (!keyboard) return;
+        SearchActivity activity = SearchActivity.sCurrent.get();
+        if (activity != null && !activity.isFinishing()) {
+            if (!closeFromKeyboard(activity)) activity.finish();
+            return;
+        }
+        Launcher launcher = Launcher.ACTIVITY_TRACKER.getCreatedContext();
+        if (launcher != null && launcher.hasBeenResumed() && launcher.hasWindowFocus()) {
+            toggleFromKeyboard(launcher);
+        } else {
+            context.startActivity(new Intent(context, SearchActivity.class)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_ANIMATION));
+        }
+    }
+
 }

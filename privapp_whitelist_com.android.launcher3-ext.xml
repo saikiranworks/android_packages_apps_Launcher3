@@ -30,4 +30,10 @@
         <permission name="com.libremobileos.permission.START_FREEFORM"/>
         <permission name="android.permission.READ_SEARCH_INDEXABLES"/>
     </privapp-permissions>
+
+    <!-- Updated launcher builds need this signature permission granted; it registers the
+         global Alt+Space Spotlight shortcut. -->
+    <signature-permissions package="com.android.launcher3">
+        <permission name="android.permission.REGISTER_WINDOW_MANAGER_LISTENERS"/>
+    </signature-permissions>
 </permissions>

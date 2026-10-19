@@ -116,7 +116,7 @@ public class Hotseat extends CellLayout implements Insettable {
             mQsb = LayoutInflater.from(context).inflate(R.layout.home_search_pill, this, false);
             mQsb.setOnClickListener(v -> {
                 if (mActivity instanceof Launcher launcher) {
-                    launcher.openSearchFromHome();
+                    launcher.openSearchFromPill(v);
                 }
             });
         } else if (Utilities.showQSB(context)) {

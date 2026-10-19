@@ -38,6 +38,7 @@ class TouchInteractionService : Service() {
             appComponent.sysUIConnectionComponentBuilder.setConnectionCleaner(cleanupTask).build()
         appComponent.sysUIConnectionTracker.setActiveComponent(component)
         handler = component.touchInteractionHandler
+        com.android.launcher3.search.universal.SpotlightView.registerGlobalShortcut(this)
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) =

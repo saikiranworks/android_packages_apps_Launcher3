@@ -709,4 +709,11 @@
         <item name="qsbIconTintTertiary">@color/qsb_tertiary</item>
     </style>
 
+    <style name="SpotlightActivityTheme" parent="@style/LauncherTheme">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowShowWallpaper">false</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
 </resources>

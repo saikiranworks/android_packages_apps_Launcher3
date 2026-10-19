@@ -2019,8 +2019,39 @@ public class Launcher extends StatefulActivity<LauncherState>
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         TestLogging.recordKeyEvent(TestProtocol.SEQUENCE_MAIN, "Key event", event);
+        if (handleSpotlightShortcut(event)) return true;
         return (event.getKeyCode() == KeyEvent.KEYCODE_HOME) || tryHandleEscapeKey(event)
                     || super.dispatchKeyEvent(event);
+    }
+
+    private long mLastSpotlightDownTime = Long.MIN_VALUE;
+    private boolean mSpotlightSpacePressed;
+
+    @Override
+    public boolean dispatchKeyShortcutEvent(KeyEvent event) {
+        return handleSpotlightShortcut(event) || super.dispatchKeyShortcutEvent(event);
+    }
+
+    private boolean handleSpotlightShortcut(KeyEvent event) {
+        android.view.InputDevice device = event.getDevice();
+        if (event.getKeyCode() != KeyEvent.KEYCODE_SPACE || device == null || device.isVirtual()
+                || device.getKeyboardType() != android.view.InputDevice.KEYBOARD_TYPE_ALPHABETIC
+                || (!event.hasModifiers(KeyEvent.META_ALT_ON)
+                    && !(mSpotlightSpacePressed && (event.getAction() == KeyEvent.ACTION_UP
+                        || event.getRepeatCount() > 0)))) {
+            return false;
+        }
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            mSpotlightSpacePressed = true;
+            // A window may route the same press through shortcut and ordinary dispatch.
+            if (event.getRepeatCount() == 0 && event.getDownTime() != mLastSpotlightDownTime) {
+                mLastSpotlightDownTime = event.getDownTime();
+                SpotlightView.toggleFromKeyboard(this);
+            }
+        } else if (event.getAction() == KeyEvent.ACTION_UP) {
+            mSpotlightSpacePressed = false;
+        }
+        return true;
     }
 
     /**

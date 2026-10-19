@@ -284,5 +284,13 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name="com.android.launcher3.search.universal.SpotlightView$SearchActivity"
+            android:theme="@style/SpotlightActivityTheme"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:taskAffinity="${applicationId}.spotlight"
+            android:windowSoftInputMode="adjustNothing" />
     </application>
 </manifest>
