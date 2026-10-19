@@ -223,19 +223,15 @@ public class AppsSearchContainerLayout extends ExtendedEditText
     @Override
     public void initializeSearch(ActivityAllAppsContainerView<?> appsView) {
         mAppsView = appsView;
-        // The drawer searches its apps, as iOS's App Library does; everything else is Spotlight's.
-        SearchAlgorithm<AdapterItem> algorithm;
-        if (LauncherPrefs.isAppLibrary(getContext())) {
-            UniversalSearchAlgorithm universal =
-                    new UniversalSearchAlgorithm(getContext(), mLauncher.getUiExecutor());
-            universal.setQueryHandler(query -> {
-                setText(query);
-                setSelection(query.length());
-            });
-            algorithm = universal;
-        } else {
-            algorithm = new DefaultAppSearchAlgorithm(getContext(), mLauncher.getUiExecutor());
-        }
+        // Universal search everywhere: apps, shortcuts, settings, QS tiles, contacts,
+        // calendar, files and calculator, gated by the pref_search_* toggles. In App
+        // Library mode the same algorithm lists every app (see UniversalSearchAlgorithm).
+        UniversalSearchAlgorithm algorithm =
+                new UniversalSearchAlgorithm(getContext(), mLauncher.getUiExecutor());
+        algorithm.setQueryHandler(query -> {
+            setText(query);
+            setSelection(query.length());
+        });
         mSearchBarController.initialize(algorithm, this, mLauncher, this);
     }
 
