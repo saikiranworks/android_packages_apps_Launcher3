@@ -78,7 +78,9 @@
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
         android:contentDescription="@string/search_history_remove"
+        android:focusable="false"
         android:padding="10dp"
         android:src="@drawable/ic_search_close"
         android:visibility="gone" />

@@ -540,9 +540,15 @@ public class SpotlightView extends AbstractFloatingView
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getKeyCode() == KeyEvent.KEYCODE_BACK
-                && event.getAction() == KeyEvent.ACTION_UP) {
+        int code = event.getKeyCode();
+        if ((code == KeyEvent.KEYCODE_BACK || code == KeyEvent.KEYCODE_ESCAPE)
+                && event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
             close(true);
+            return true;
+        }
+        // Up and Down move a single highlight through the results. The text cursor stays in
+        // the field, and Left and Right still move it unless an app row is being browsed.
+        if (event.getAction() == KeyEvent.ACTION_DOWN && mAdapter.handleKey(event)) {
             return true;
         }
         return super.dispatchKeyEvent(event);
@@ -579,12 +585,12 @@ public class SpotlightView extends AbstractFloatingView
         if (!query.equals(mInput.getText().toString()) || !mIsOpen) {
             return;
         }
-        mAdapter.setRows(query.trim().isEmpty() ? suggestions(items) : rows(items));
+        mAdapter.setRows(query, query.trim().isEmpty() ? suggestions(items) : rows(items));
     }
 
     @Override
     public void clearSearchResult() {
-        mAdapter.setRows(new ArrayList<>());
+        mAdapter.setRows("", new ArrayList<>());
     }
 
     /**
@@ -795,12 +801,217 @@ public class SpotlightView extends AbstractFloatingView
     }
 
     private final class Adapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-        private List<Row> mRows = new ArrayList<>();
+        private static final int HIGHLIGHT = 0x33FFFFFF;
 
-        void setRows(List<Row> rows) {
+        private List<Row> mRows = new ArrayList<>();
+        private String mQuery = "";
+        /** Index into {@link #selectable()}, not into {@link #mRows}. */
+        private int mSelected = 0;
+        private int mSelectedApp = 0;
+        private boolean mBrowsing;
+
+        void setRows(String query, List<Row> rows) {
+            String selectedKey = selectionKey();
+            String selectedApp = selectionAppKey();
+            boolean sameQuery = query.equals(mQuery);
+            boolean browsing = mBrowsing;
+            mQuery = query;
             mRows = rows;
+            if (!sameQuery || !restoreSelection(selectedKey, selectedApp)) {
+                mSelected = 0;
+                mSelectedApp = 0;
+                mBrowsing = false;
+            } else {
+                mBrowsing = browsing;
+            }
             notifyDataSetChanged();
             mCard.setVisibility(rows.isEmpty() ? INVISIBLE : VISIBLE);
+            if (mResults != null && !sameQuery) {
+                mResults.scrollToPosition(0);
+            } else if (mResults != null && mBrowsing) {
+                List<Integer> selectable = selectable();
+                if (!selectable.isEmpty()) {
+                    mResults.scrollToPosition(
+                            selectable.get(Math.min(mSelected, selectable.size() - 1)));
+                }
+            }
+        }
+
+        /** Keeps the highlight on the same result when a later batch arrives for this query. */
+        private boolean restoreSelection(String key, String appKey) {
+            if (key == null) {
+                return false;
+            }
+            List<Integer> rows = selectable();
+            for (int i = 0; i < rows.size(); i++) {
+                Row row = mRows.get(rows.get(i));
+                if (row.type == Row.RESULT && row.result != null
+                        && key.equals(resultKey(row.result))) {
+                    mSelected = i;
+                    mSelectedApp = 0;
+                    return true;
+                }
+                if (row.type == Row.APPS && "apps".equals(key) && row.apps != null) {
+                    if (appKey == null) {
+                        mSelected = i;
+                        mSelectedApp = 0;
+                        return true;
+                    }
+                    for (int a = 0; a < row.apps.size(); a++) {
+                        if (appKey.equals(SearchHistory.appKey(
+                                row.apps.get(a).getTargetComponent(), row.apps.get(a).user))) {
+                            mSelected = i;
+                            mSelectedApp = a;
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        private String selectionKey() {
+            List<Integer> rows = selectable();
+            if (rows.isEmpty()) {
+                return null;
+            }
+            Row row = mRows.get(rows.get(Math.min(mSelected, rows.size() - 1)));
+            if (row.type == Row.RESULT && row.result != null) {
+                return resultKey(row.result);
+            }
+            if (row.type == Row.APPS) {
+                return "apps";
+            }
+            return null;
+        }
+
+        private String selectionAppKey() {
+            List<Integer> rows = selectable();
+            if (rows.isEmpty()) {
+                return null;
+            }
+            Row row = mRows.get(rows.get(Math.min(mSelected, rows.size() - 1)));
+            if (row.type != Row.APPS || row.apps == null || row.apps.isEmpty()) {
+                return null;
+            }
+            AppInfo app = row.apps.get(Math.min(mSelectedApp, row.apps.size() - 1));
+            return SearchHistory.appKey(app.getTargetComponent(), app.user);
+        }
+
+        private static String resultKey(UniversalSearchResult result) {
+            return result.source + ":" + result.id;
+        }
+
+        /**
+         * Desktop movement: Up and Down walk results, Left and Right walk the suggested apps
+         * once that row is reached, and Enter opens the highlighted one.
+         */
+        boolean handleKey(KeyEvent event) {
+            int code = event.getKeyCode();
+            List<Integer> rows = selectable();
+            if (rows.isEmpty()) {
+                return false;
+            }
+            boolean ctrl = event.isCtrlPressed();
+            if (code == KeyEvent.KEYCODE_DPAD_DOWN
+                    || (code == KeyEvent.KEYCODE_TAB && !event.isShiftPressed())
+                    || (ctrl && (code == KeyEvent.KEYCODE_N || code == KeyEvent.KEYCODE_J))) {
+                move(1, rows);
+                return true;
+            }
+            if (code == KeyEvent.KEYCODE_DPAD_UP
+                    || (code == KeyEvent.KEYCODE_TAB && event.isShiftPressed())
+                    || (ctrl && (code == KeyEvent.KEYCODE_P || code == KeyEvent.KEYCODE_K))) {
+                move(-1, rows);
+                return true;
+            }
+            if (code == KeyEvent.KEYCODE_PAGE_DOWN) {
+                move(5, rows);
+                return true;
+            }
+            if (code == KeyEvent.KEYCODE_PAGE_UP) {
+                move(-5, rows);
+                return true;
+            }
+            if (code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                return moveApp(code == KeyEvent.KEYCODE_DPAD_RIGHT ? 1 : -1, rows);
+            }
+            if (code == KeyEvent.KEYCODE_ENTER || code == KeyEvent.KEYCODE_NUMPAD_ENTER
+                    || code == KeyEvent.KEYCODE_DPAD_CENTER) {
+                // A held Enter must not open the result again and again.
+                return event.getRepeatCount() > 0 || launchSelected(rows);
+            }
+            return false;
+        }
+
+        private void move(int delta, List<Integer> rows) {
+            int next = Math.max(0, Math.min(rows.size() - 1, mSelected + delta));
+            if (delta < 0 && mSelected == 0 && mBrowsing) {
+                // Up from the first row hands the keys back to the text field.
+                mBrowsing = false;
+                notifyDataSetChanged();
+                return;
+            }
+            mBrowsing = true;
+            if (next != mSelected) {
+                // Keep the column when stepping between rows of suggested apps.
+                Row row = mRows.get(rows.get(next));
+                mSelectedApp = row.type == Row.APPS && row.apps != null && !row.apps.isEmpty()
+                        ? Math.min(mSelectedApp, row.apps.size() - 1) : 0;
+            }
+            mSelected = next;
+            notifyDataSetChanged();
+            mResults.scrollToPosition(rows.get(mSelected));
+        }
+
+        /** @return true when this key should not also move the text cursor */
+        private boolean moveApp(int delta, List<Integer> rows) {
+            Row row = mRows.get(rows.get(Math.min(mSelected, rows.size() - 1)));
+            if (row.type != Row.APPS || row.apps == null || row.apps.isEmpty()) {
+                return false;
+            }
+            // Once browsing, or with nothing typed, the arrows walk the apps. While typing,
+            // Right at the end of the text also steps into them so a query need not be left.
+            int len = mInput.length();
+            boolean atEnd = mInput.getSelectionStart() == len && mInput.getSelectionEnd() == len;
+            if (!mBrowsing && len > 0 && !(delta > 0 && atEnd)) {
+                return false;
+            }
+            int next = Math.max(0, Math.min(row.apps.size() - 1, mSelectedApp + delta));
+            mBrowsing = true;
+            mSelectedApp = next;
+            notifyDataSetChanged();
+            return true;
+        }
+
+        private boolean launchSelected(List<Integer> rows) {
+            Row row = mRows.get(rows.get(Math.min(mSelected, rows.size() - 1)));
+            if (row.type == Row.APPS && row.apps != null && !row.apps.isEmpty()) {
+                AppInfo app = row.apps.get(Math.min(mSelectedApp, row.apps.size() - 1));
+                SearchHistory.recordLaunch(getContext(), SearchHistory.appKey(
+                        app.getTargetComponent(), app.user));
+                return mHost.startActivitySafely(mInput, app.getIntent(), app) != null;
+            }
+            if (row.result != null) {
+                return UniversalSearchResults.launch(mHost, mInput, row.result);
+            }
+            return false;
+        }
+
+        private List<Integer> selectable() {
+            List<Integer> rows = new ArrayList<>();
+            for (int i = 0; i < mRows.size(); i++) {
+                Row row = mRows.get(i);
+                if (row.type == Row.APPS || row.type == Row.RESULT) {
+                    rows.add(i);
+                }
+            }
+            return rows;
+        }
+
+        private boolean isHighlighted(int position) {
+            List<Integer> rows = selectable();
+            return !rows.isEmpty() && rows.get(Math.min(mSelected, rows.size() - 1)) == position;
         }
 
         @Override
@@ -858,17 +1069,22 @@ public class SpotlightView extends AbstractFloatingView
             switch (row.type) {
                 case Row.APPS -> {
                     ViewGroup group = (ViewGroup) holder.itemView;
+                    boolean rowHighlighted = isHighlighted(position);
                     for (int i = 0; i < group.getChildCount(); i++) {
                         BubbleTextView icon = (BubbleTextView) group.getChildAt(i);
                         icon.reset();
+                        icon.setFocusable(false);
                         if (i >= row.apps.size()) {
                             icon.setVisibility(INVISIBLE);
+                            icon.setForeground(null);
                             continue;
                         }
                         AppInfo app = row.apps.get(i);
                         icon.setVisibility(VISIBLE);
                         icon.applyFromApplicationInfo(app);
                         icon.setTextColor(0xFFFFFFFF);
+                        icon.setForeground(rowHighlighted && i == mSelectedApp
+                                ? new android.graphics.drawable.ColorDrawable(HIGHLIGHT) : null);
                         icon.setOnClickListener(v -> {
                             SearchHistory.recordLaunch(v.getContext(), SearchHistory.appKey(
                                     app.getTargetComponent(), app.user));
@@ -880,6 +1096,9 @@ public class SpotlightView extends AbstractFloatingView
                         .setText(row.title);
                 case Row.RESULT -> {
                     UniversalSearchResults.bind(mHost, holder.itemView, row.result);
+                    holder.itemView.setFocusable(false);
+                    holder.itemView.setForeground(isHighlighted(position)
+                            ? new android.graphics.drawable.ColorDrawable(HIGHLIGHT) : null);
                     // A touch larger than the drawer's rows, at the system's body size.
                     TextView title = holder.itemView.findViewById(R.id.search_result_title);
                     title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);

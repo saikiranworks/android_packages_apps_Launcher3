@@ -39,9 +39,7 @@ import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
-import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.PointF;
 import android.graphics.Rect;
@@ -1839,56 +1837,52 @@ public class TaskbarView extends FrameLayout implements FolderIcon.FolderIconPar
     }
 
     /**
-     * A house glyph. The navbar home asset is a filled circle, which reads as an empty button
-     * next to Search.
+     * A landscape tablet glyph for leaving desktop mode. Drawn here so the offline launcher
+     * build does not need a new drawable. The navbar home asset stays a filled circle.
      */
     private static Drawable createExitDesktopIcon() {
-        Path path = new Path();
-        path.moveTo(10, 20);
-        path.lineTo(10, 14);
-        path.lineTo(14, 14);
-        path.lineTo(14, 20);
-        path.lineTo(19, 20);
-        path.lineTo(19, 12);
-        path.lineTo(22, 12);
-        path.lineTo(12, 3);
-        path.lineTo(2, 12);
-        path.lineTo(5, 12);
-        path.lineTo(5, 20);
-        path.close();
         return new Drawable() {
-            private final Paint mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            private final Path mScaled = new Path();
-            private final Matrix mMatrix = new Matrix();
+            private final Paint mStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+            private final Paint mDot = new Paint(Paint.ANTI_ALIAS_FLAG);
 
             {
-                mPaint.setStyle(Paint.Style.FILL);
-                mPaint.setColor(Color.WHITE);
+                mStroke.setStyle(Paint.Style.STROKE);
+                mStroke.setStrokeJoin(Paint.Join.ROUND);
+                mStroke.setStrokeCap(Paint.Cap.ROUND);
+                mStroke.setColor(Color.WHITE);
+                mDot.setStyle(Paint.Style.FILL);
+                mDot.setColor(Color.WHITE);
             }
 
             @Override
             public void draw(Canvas canvas) {
                 Rect bounds = getBounds();
-                mMatrix.setScale(bounds.width() / 24f, bounds.height() / 24f);
-                mMatrix.postTranslate(bounds.left, bounds.top);
-                path.transform(mMatrix, mScaled);
-                canvas.drawPath(mScaled, mPaint);
+                canvas.save();
+                canvas.translate(bounds.left, bounds.top);
+                canvas.scale(bounds.width() / 24f, bounds.height() / 24f);
+                mStroke.setStrokeWidth(1.7f);
+                canvas.drawRoundRect(2.5f, 6.5f, 21.5f, 17.5f, 2.2f, 2.2f, mStroke);
+                canvas.drawCircle(12f, 8.4f, 0.7f, mDot);
+                canvas.restore();
             }
 
             @Override
             public void setTint(int tintColor) {
-                mPaint.setColor(tintColor);
+                mStroke.setColor(tintColor);
+                mDot.setColor(tintColor);
                 invalidateSelf();
             }
 
             @Override
             public void setAlpha(int alpha) {
-                mPaint.setAlpha(alpha);
+                mStroke.setAlpha(alpha);
+                mDot.setAlpha(alpha);
             }
 
             @Override
             public void setColorFilter(ColorFilter colorFilter) {
-                mPaint.setColorFilter(colorFilter);
+                mStroke.setColorFilter(colorFilter);
+                mDot.setColorFilter(colorFilter);
             }
 
             @Override

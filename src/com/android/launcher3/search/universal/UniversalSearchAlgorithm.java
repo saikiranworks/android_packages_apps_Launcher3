@@ -60,6 +60,8 @@ public class UniversalSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
     private Pass mLastPass;
 
     private Consumer<String> mQueryHandler = q -> { };
+    private String mLastQuery = "";
+    private SearchCallback<AdapterItem> mLastCallback;
     // Spotlight shows suggested apps before anything is typed, as iOS does.
     private volatile boolean mSpotlight;
     private final boolean mAppLibrary;
@@ -107,8 +109,17 @@ public class UniversalSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
         mLastPass = null;
     }
 
+    /** Runs the current query again after history is cleared or a recent search is removed. */
+    public void repeat() {
+        if (mLastCallback != null) {
+            doSearch(mLastQuery, mLastCallback);
+        }
+    }
+
     @Override
     public void doSearch(String query, SearchCallback<AdapterItem> callback) {
+        mLastQuery = query;
+        mLastCallback = callback;
         final int token = mRequest.incrementAndGet();
         SearchHistory.setCurrentQuery(query);
         mAppState.getModel().enqueueModelUpdateTask((taskController, dataModel, apps) -> {
@@ -219,16 +230,14 @@ public class UniversalSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
         if (token != mRequest.get()) {
             return;
         }
-        ArrayList<AdapterItem> items = new ArrayList<>(historyItems(
-                () -> publishEmptyQuery(mRequest.get(), query, appItems, callback)));
+        ArrayList<AdapterItem> items = new ArrayList<>(historyItems());
         items.addAll(appItems);
-        if (items.isEmpty()) {
-            return;
-        }
+        // An empty list still has to be published. Otherwise removing or clearing the last
+        // recent search leaves that row on screen.
         publish(token, query, items, callback);
     }
 
-    private List<AdapterItem> historyItems(Runnable refresh) {
+    private List<AdapterItem> historyItems() {
         List<String> queries = SearchHistory.recentQueries(mContext);
         List<AdapterItem> items = new ArrayList<>();
         if (queries.isEmpty()) {
@@ -241,10 +250,10 @@ public class UniversalSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
                     null, 0);
             row.iconRes = R.drawable.ic_search_history;
             row.onTap = () -> mQueryHandler.accept(recent);
-            row.onRemove = () -> mWorker.post(() -> {
+            row.onRemove = () -> {
                 SearchHistory.removeQuery(mContext, recent);
-                refresh.run();
-            });
+                repeat();
+            };
             items.add(AdapterItem.asSearchResult(row));
         }
         UniversalSearchResult clear = new UniversalSearchResult(
@@ -253,7 +262,7 @@ public class UniversalSearchAlgorithm implements SearchAlgorithm<AdapterItem> {
         clear.iconRes = R.drawable.ic_search_clear;
         clear.onTap = () -> {
             SearchHistory.clear(mContext);
-            mQueryHandler.accept("");
+            repeat();
         };
         items.add(AdapterItem.asSearchResult(clear));
         return items;

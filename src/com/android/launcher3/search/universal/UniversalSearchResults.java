@@ -272,6 +272,9 @@ public class UniversalSearchResults {
         }
         ImageView remove = view.findViewById(R.id.search_result_remove);
         remove.setVisibility(result.onRemove == null ? View.GONE : View.VISIBLE);
+        remove.setClickable(result.onRemove != null);
+        remove.setFocusable(false);
+        // Consume the touch so the row behind this button does not also open the search.
         remove.setOnClickListener(result.onRemove == null ? null : v -> result.onRemove.run());
         applyIcon(icon, result);
         CompoundButton toggle = view.findViewById(R.id.search_result_switch);
