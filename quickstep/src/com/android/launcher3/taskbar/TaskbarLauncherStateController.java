@@ -1136,6 +1136,14 @@ public class TaskbarLauncherStateController {
         onIconAlignmentRatioChanged();
     }
 
+    private boolean useHotseatDuringHome() {
+        return mControllers.taskbarActivityContext.isPrimaryDisplay()
+                && mControllers.taskbarActivityContext.isTransientTaskbar()
+                && mLauncherState == LauncherState.NORMAL
+                && (isAnimatingToLauncher() || isInLauncher())
+                && !mControllers.taskbarStashController.isHiddenForBubbles();
+    }
+
     private void onIconAlignmentRatioChanged() {
         float currentValue = mTaskbarAlphaForHome.getValue();
         boolean taskbarWillBeVisible = mIconAlignment.value < 1;
@@ -1145,6 +1153,7 @@ public class TaskbarLauncherStateController {
             taskbarWillBeVisible = shouldShowTaskbar(mControllers.taskbarActivityContext,
                     isInLauncher, isInOverview);
         }
+        if (useHotseatDuringHome()) taskbarWillBeVisible = false;
         boolean firstFrameVisChanged = (taskbarWillBeVisible && Float.compare(currentValue, 1) != 0)
                 || (!taskbarWillBeVisible && Float.compare(currentValue, 0) != 0);
 
@@ -1187,6 +1196,9 @@ public class TaskbarLauncherStateController {
         if (mIsDestroyed) {
             return;
         }
+        // Let the real Home hotseat participate in Launcher’s workspace animation.
+        // The taskbar may still be revealing from a cropped nav handle underneath it.
+        if (useHotseatDuringHome()) taskbarAlpha = 0;
         if (updateTaskbarAlpha) {
             mTaskbarAlphaForHome.setValue(taskbarAlpha);
         }
