@@ -390,6 +390,9 @@ public class LargeFolderPreview {
 
         // Frosted "fake blur" panel behind everything.
         float radius = mPanelRect.width() * 0.16f;
+        // Real blur under the tint, as the open folder has, so closing it doesn't drop the blur.
+        mIcon.mActivity.getActivityComponent().getBlurBackgroundHelper()
+                .drawTileBlur(canvas, mIcon, mPanelRect, radius);
         canvas.drawRoundRect(mPanelRect, radius, radius, mPanelPaint);
         canvas.drawRoundRect(mPanelRect, radius, radius, mPanelStrokePaint);
         if (mAccepting) {

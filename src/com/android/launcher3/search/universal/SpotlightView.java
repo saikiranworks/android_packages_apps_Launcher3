@@ -158,6 +158,24 @@ public class SpotlightView extends AbstractFloatingView
         launcher.openSearchFromPill(anchor != null ? anchor : launcher.getHotseat());
     }
 
+    /**
+     * Esc closes an open Spotlight whichever view has focus, and with Alt still held from the
+     * shortcut. The press is swallowed on both edges so the host doesn't act on it too.
+     */
+    public static boolean handleEscape(BaseActivity host, KeyEvent event) {
+        if (event.getKeyCode() != KeyEvent.KEYCODE_ESCAPE) return false;
+        BaseDragLayer<?> layer = host.getDragLayer();
+        for (int i = layer.getChildCount() - 1; i >= 0; i--) {
+            if (layer.getChildAt(i) instanceof SpotlightView view && view.isOpen()) {
+                if (event.getAction() == KeyEvent.ACTION_UP && event.getRepeatCount() == 0) {
+                    view.close(true);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean closeFromKeyboard(BaseActivity host) {
         BaseDragLayer<?> layer = host.getDragLayer();
         for (int i = layer.getChildCount() - 1; i >= 0; i--) {
@@ -1149,6 +1167,11 @@ public class SpotlightView extends AbstractFloatingView
 
         @Override
         public BaseDragLayer<?> getDragLayer() { return mLayer; }
+
+        @Override
+        public boolean dispatchKeyEvent(KeyEvent event) {
+            return handleEscape(this, event) || super.dispatchKeyEvent(event);
+        }
 
         @Override
         public void onBackPressed() {

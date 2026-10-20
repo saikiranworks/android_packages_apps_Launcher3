@@ -2020,6 +2020,7 @@ public class Launcher extends StatefulActivity<LauncherState>
     public boolean dispatchKeyEvent(KeyEvent event) {
         TestLogging.recordKeyEvent(TestProtocol.SEQUENCE_MAIN, "Key event", event);
         if (handleSpotlightShortcut(event)) return true;
+        if (SpotlightView.handleEscape(this, event)) return true;
         return (event.getKeyCode() == KeyEvent.KEYCODE_HOME) || tryHandleEscapeKey(event)
                     || super.dispatchKeyEvent(event);
     }

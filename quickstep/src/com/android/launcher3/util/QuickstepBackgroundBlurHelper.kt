@@ -21,6 +21,7 @@ import android.graphics.Color
 import android.graphics.Outline
 import android.graphics.Path
 import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.RenderEffect
 import android.graphics.RenderNode
 import android.graphics.Shader
@@ -60,6 +61,9 @@ constructor(
 
     private val popupBlurRadius =
         context.resources.getDimensionPixelSize(R.dimen.popup_blur_radius)
+
+    // ColorOS-style frosted tile: a stronger blur than the plain folder surface.
+    private val tileBlurRadius = (folderBlurRadius * 1.5f).toInt()
 
     private val cornerRadius = Themes.getDialogCornerRadius(context)
     private val workspaceBlurRenderNode = RenderNode("workspaceBlur")
@@ -173,6 +177,31 @@ constructor(
             d.setBounds(0, 0, view.width, view.height)
             d.setCornerRadius(cornerRadius)
         }
+        d.draw(canvas)
+    }
+
+    // One blur layer per big folder tile; the tile may be drawn by several icons at once.
+    private val tileBlurs = java.util.WeakHashMap<View, BackgroundBlurDrawable>()
+
+    override fun drawTileBlur(canvas: Canvas, view: View, bounds: RectF, cornerRadius: Float) {
+        if (!isBlurEnabled()) {
+            return
+        }
+        val d =
+            tileBlurs[view]
+                ?: activityContext.dragLayer.viewRootImpl
+                    ?.createBackgroundBlurDrawable()
+                    ?.also { tileBlurs[view] = it }
+                ?: return
+        d.setBlurRadius(tileBlurRadius)
+        d.setCornerRadius(cornerRadius)
+        d.setBounds(
+            Math.round(bounds.left),
+            Math.round(bounds.top),
+            Math.round(bounds.right),
+            Math.round(bounds.bottom),
+        )
+        d.setVisible(true, false)
         d.draw(canvas)
     }
 

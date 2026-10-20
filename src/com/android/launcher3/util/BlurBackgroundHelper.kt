@@ -17,6 +17,7 @@
 package com.android.launcher3.util
 
 import android.graphics.Canvas
+import android.graphics.RectF
 import android.view.View
 import com.android.launcher3.dagger.ActivityContextSingleton
 import com.android.launcher3.folder.Folder
@@ -44,6 +45,13 @@ constructor() {
     open fun drawFolderBlur(canvas: Canvas, pathWrapper: PathWrapper?, view: View) {}
 
     open fun folderCloseComplete() {}
+
+    /**
+     * Blurs what is behind [bounds] (in [view]'s coordinates) with rounded corners, for the big
+     * folder tile on the home screen. The blur stays under the tile at rest and is the same the
+     * open folder draws, so opening and closing it doesn't change the surface.
+     */
+    open fun drawTileBlur(canvas: Canvas, view: View, bounds: RectF, cornerRadius: Float) {}
 
     open fun isBlurEnabled() = false
 
