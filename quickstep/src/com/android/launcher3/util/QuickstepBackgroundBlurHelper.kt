@@ -62,8 +62,8 @@ constructor(
     private val popupBlurRadius =
         context.resources.getDimensionPixelSize(R.dimen.popup_blur_radius)
 
-    // ColorOS-style frosted tile: a stronger blur than the plain folder surface.
-    private val tileBlurRadius = (folderBlurRadius * 1.5f).toInt()
+    // The same radius as the open folder, so the surface doesn't change when one closes.
+    private val tileBlurRadius = folderBlurRadius.toInt()
 
     private val cornerRadius = Themes.getDialogCornerRadius(context)
     private val workspaceBlurRenderNode = RenderNode("workspaceBlur")
@@ -185,6 +185,14 @@ constructor(
 
     override fun drawTileBlur(canvas: Canvas, view: View, bounds: RectF, cornerRadius: Float) {
         if (!isBlurEnabled()) {
+            return
+        }
+        val dragLayer = activityContext.dragLayer
+        val folderShowing = (0 until dragLayer.childCount).any { dragLayer.getChildAt(it) is Folder }
+        if (folderShowing) {
+            // The open folder blurs this same area, through every frame of its open and close
+            // animation. A second blur layer under it, with another shape, shows at its edges.
+            tileBlurs[view]?.setVisible(false, false)
             return
         }
         val d =

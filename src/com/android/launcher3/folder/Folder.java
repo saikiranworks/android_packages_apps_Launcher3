@@ -1056,6 +1056,8 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
             mFolderIcon.setVisibility(View.VISIBLE);
             mFolderIcon.setIconVisible(true);
             mFolderIcon.setBigPreviewAlpha(1f);
+            // The tile blurs itself again now that the folder's blur is gone.
+            mFolderIcon.invalidate();
             mFolderIcon.mFolderName.getFloatingViewTextAlpha().setValue(
                     1f);
             if (wasAnimated) {
